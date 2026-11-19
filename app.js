@@ -1,0 +1,278 @@
+/**
+ * INSTAOrder — Punto de entrada
+ * =============================
+ * Takolandia – Comida Mexicana · Sistema interno de pedidos en mesa.
+ *
+ * Responsabilidades de este archivo:
+ *  - Iniciar el servicio de datos (Firebase o modo demo).
+ *  - Mantener en tiempo real configuración, catálogo y órdenes activas.
+ *  - Pantalla de inicio, inicio de sesión (si AUTH_MODE = "email"),
+ *    indicadores de conexión, reloj y tiempos transcurridos.
+ *  - Registrar el Service Worker y avisar cuando hay una versión nueva.
+ */
+
+import { dataService } from "./firebase-service.js";
+import { IS_DEMO } from "./firebase-config.js";
+import { state, emit, subscribe, mergeSettings, normalizeCatalog, logoSrc } from "./js/state.js";
+import { defineRoute, startRouter, go, refresh } from "./js/router.js";
+import { connPill, refreshConnPills, CONN_LABELS } from "./js/components.js";
+import { processOutbox } from "./js/outbox.js";
+import { getLastMode, setLastMode } from "./js/store.js";
+import { unlockAudio } from "./js/sound.js";
+import { esc, fmtClock, fmtDuration, toast, $ } from "./js/ui.js";
+import { WaiterScreen, startWaiterAlerts } from "./js/waiter.js";
+import { KitchenScreen, HistoryScreen } from "./js/kitchen.js";
+import { SettingsScreen } from "./js/settings.js";
+
+export const APP_VERSION = "1.0.0";
+
+/* ------------------------------------------------------------------ */
+/* Pantalla de inicio                                                  */
+/* ------------------------------------------------------------------ */
+
+const HomeScreen = {
+  mount(root) {
+    const last = getLastMode();
+    root.innerHTML = `
+    <section class="home">
+      <div class="home-card">
+        <div class="logo-slot">
+          <img src="${esc(logoSrc())}" alt="Logo ${esc(state.settings.restaurantName)}" class="home-logo">
+        </div>
+        <h1 class="home-title">INSTA<b>Order</b></h1>
+        <p class="home-sub">${esc(state.settings.restaurantName)} – ${esc(state.settings.restaurantSubtitle)}</p>
+        <div class="home-clock">
+          <div class="home-time" data-clock="time"></div>
+          <div class="home-date" data-clock="date"></div>
+        </div>
+        <div class="home-conn">${connPill()}</div>
+        <div class="home-actions">
+          <button class="mode-btn mode-waiter" data-mode="mesero">
+            <span class="mode-ico">📱</span>
+            <span class="mode-txt"><b>MODO MESERO</b><small>Tomar pedidos en mesa</small></span>
+            ${last === "mesero" ? '<span class="mode-last">Último usado</span>' : ""}
+          </button>
+          <button class="mode-btn mode-kitchen" data-mode="cocina">
+            <span class="mode-ico">👨‍🍳</span>
+            <span class="mode-txt"><b>MODO COCINA</b><small>Pantalla de órdenes (tablet)</small></span>
+            ${last === "cocina" ? '<span class="mode-last">Último usado</span>' : ""}
+          </button>
+        </div>
+        <button class="link-btn" data-go="config">⚙️ Configuración</button>
+        <p class="home-version">v${APP_VERSION}${IS_DEMO ? " · modo demo local" : ""}</p>
+      </div>
+    </section>`;
+    root.querySelector(".home").addEventListener("click", (e) => {
+      const m = e.target.closest("[data-mode]");
+      if (m) { unlockAudio(); setLastMode(m.dataset.mode); go(m.dataset.mode); return; }
+      const g = e.target.closest("[data-go]");
+      if (g) go(g.dataset.go);
+    });
+    tickClocks();
+  },
+  update() {
+    const img = $(".home-logo");
+    if (img && img.getAttribute("src") !== logoSrc()) img.src = logoSrc();
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* Inicio de sesión (sólo AUTH_MODE = "email")                         */
+/* ------------------------------------------------------------------ */
+
+function showLogin() {
+  const root = $("#app");
+  root.innerHTML = `
+  <section class="home">
+    <form class="home-card login-card" autocomplete="on">
+      <div class="logo-slot"><img src="assets/logo.png" class="home-logo" alt="Logo"></div>
+      <h1 class="home-title">INSTA<b>Order</b></h1>
+      <p class="home-sub">Inicia sesión una vez en este dispositivo</p>
+      <input class="field" name="email" type="email" placeholder="Usuario (correo)" required autocomplete="username">
+      <input class="field" name="password" type="password" placeholder="Contraseña" required autocomplete="current-password">
+      <button class="btn btn-primary btn-lg" type="submit">Entrar</button>
+      <p class="login-err" role="alert"></p>
+    </form>
+  </section>`;
+  root.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const btn = f.querySelector("button");
+    btn.disabled = true;
+    try {
+      await dataService.signInEmail(f.email.value.trim(), f.password.value);
+      location.reload();
+    } catch (err) {
+      f.querySelector(".login-err").textContent = "Usuario o contraseña incorrectos.";
+      btn.disabled = false;
+    }
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Reloj y tiempos transcurridos (se actualizan cada segundo)          */
+/* ------------------------------------------------------------------ */
+
+function tickClocks() {
+  const c = fmtClock(new Date(dataService.now()));
+  document.querySelectorAll("[data-clock]").forEach((el) => {
+    const v = el.dataset.clock === "date" ? c.date : el.dataset.clock === "time" ? c.time : `${c.time}`;
+    if (el.textContent !== v) el.textContent = v;
+  });
+  const now = dataService.now();
+  document.querySelectorAll("[data-since]").forEach((el) => {
+    const since = Number(el.dataset.since);
+    if (!since) return;
+    const ms = now - since;
+    el.textContent = fmtDuration(ms);
+    // Avisos de demora para cocina (10 y 20 minutos)
+    const warn = el.closest("[data-age]");
+    if (warn) warn.dataset.age = ms > 20 * 60000 ? "late" : ms > 10 * 60000 ? "slow" : "ok";
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Banner global de conexión                                           */
+/* ------------------------------------------------------------------ */
+
+function updateConnBanner() {
+  let el = $("#conn-banner");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "conn-banner";
+    el.setAttribute("role", "alert");
+    document.body.appendChild(el);
+  }
+  const bad = state.conn === "offline" || state.conn === "reconnecting" || state.conn === "auth-error";
+  const kitchen = document.body.dataset.screen === "cocina";
+  el.className = bad ? "show " + (state.conn === "offline" ? "bad" : "warn") : "";
+  if (state.conn === "auth-error") {
+    el.textContent = "⚠️ No se pudo iniciar sesión en Firebase. Revisa Authentication y las reglas (ver README).";
+  } else if (bad) {
+    el.textContent = kitchen
+      ? `⚠️ ${CONN_LABELS[state.conn].text.toUpperCase()} — LAS ÓRDENES NUEVAS NO ESTÁN LLEGANDO`
+      : `⚠️ ${CONN_LABELS[state.conn].text.toUpperCase()} — los pedidos NO se están enviando. Se enviarán al reconectar.`;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Service Worker: actualizaciones de la app desde GitHub Pages         */
+/* ------------------------------------------------------------------ */
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (!/^https:$|^http:$/.test(location.protocol)) return;
+  navigator.serviceWorker.register("./service-worker.js").then((reg) => {
+    const offer = (worker) => {
+      let bar = $("#update-bar");
+      if (bar) return;
+      bar = document.createElement("div");
+      bar.id = "update-bar";
+      bar.innerHTML = `<span>Hay una nueva versión de INSTAOrder.</span>
+        <button class="btn btn-sm btn-yellow">Actualizar ahora</button>`;
+      document.body.appendChild(bar);
+      bar.querySelector("button").onclick = () => worker.postMessage({ type: "SKIP_WAITING" });
+    };
+    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+    reg.addEventListener("updatefound", () => {
+      const nw = reg.installing;
+      nw?.addEventListener("statechange", () => {
+        if (nw.state === "installed" && navigator.serviceWorker.controller) offer(nw);
+      });
+    });
+    // Buscar versión nueva al volver a la app y cada 30 minutos.
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update().catch(() => {}); });
+    setInterval(() => reg.update().catch(() => {}), 30 * 60 * 1000);
+  }).catch((e) => console.warn("[INSTAOrder] Service Worker no registrado:", e));
+
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloaded) return;
+    reloaded = true;
+    // Los pedidos están en Firebase y la bandeja local en localStorage:
+    // recargar no pierde información.
+    location.reload();
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Arranque                                                            */
+/* ------------------------------------------------------------------ */
+
+async function boot() {
+  document.addEventListener("pointerdown", unlockAudio, { passive: true });
+  registerServiceWorker();
+  setInterval(tickClocks, 1000);
+
+  try {
+    await dataService.init();
+  } catch (e) {
+    console.error(e);
+    $("#app").innerHTML = `<section class="home"><div class="home-card">
+      <img src="assets/logo.png" class="home-logo" alt="Logo">
+      <h1 class="home-title">INSTA<b>Order</b></h1>
+      <p class="login-err">No se pudo cargar Firebase. Verifica la conexión a Internet y firebase-config.js.</p>
+      <button class="btn btn-primary btn-lg" onclick="location.reload()">Reintentar</button></div></section>`;
+    return;
+  }
+
+  if (dataService.needsLogin()) { showLogin(); return; }
+
+  dataService.onConnection((s) => {
+    const was = state.conn;
+    state.conn = s;
+    refreshConnPills();
+    updateConnBanner();
+    if ((s === "connected" || s === "demo") && was !== s) processOutbox();
+    if (s === "connected" && (was === "reconnecting" || was === "offline")) toast("Conexión restablecida", "success");
+    emit();
+  });
+  dataService.onAuth((user, err) => {
+    if (err) { state.conn = "auth-error"; refreshConnPills(); updateConnBanner(); }
+  });
+
+  const onDataError = (e) => {
+    state.dataError = e;
+    toast("Permiso denegado por Firebase. Revisa las reglas de seguridad.", "error", 6000);
+  };
+
+  dataService.watchSettings((remote) => {
+    state.settings = mergeSettings(remote);
+    state.settingsLoaded = true;
+    emit();
+  }, onDataError);
+
+  dataService.watchCatalog((remote) => {
+    state.catalogFromServer = !!remote;
+    state.catalog = normalizeCatalog(remote);
+    emit();
+  }, onDataError);
+
+  dataService.watchActiveOrders((orders) => {
+    state.activeOrders = orders;
+    state.ordersLoaded = true;
+    emit();
+  }, onDataError);
+
+  subscribe(() => refresh());
+
+  defineRoute("inicio", HomeScreen);
+  defineRoute("mesero", WaiterScreen);
+  defineRoute("cocina", KitchenScreen);
+  defineRoute("historial", HistoryScreen);
+  defineRoute("config", SettingsScreen);
+
+  // Recordar el último modo usado en este dispositivo.
+  if (!location.hash || location.hash === "#/" || location.hash === "#") {
+    const last = getLastMode();
+    if (last === "mesero" || last === "cocina") history.replaceState(null, "", "#/" + last);
+  }
+
+  window.addEventListener("hashchange", updateConnBanner);
+  startRouter($("#app"));
+  startWaiterAlerts();
+  updateConnBanner();
+  processOutbox();
+}
+
+boot();

@@ -1,0 +1,194 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "security": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "roles": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+    "settings": {
+      ".read": "auth != null",
+      "app": {
+        ".write": "(auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'admin')) && newData.exists()",
+        "tableCount": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 200"
+        },
+        "restaurantName": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "adminPin": {
+          ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 8"
+        },
+        "logo": {
+          ".validate": "newData.isString() && newData.val().length < 600000"
+        }
+      }
+    },
+    "catalog": {
+      ".read": "auth != null",
+      ".write": "(auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'admin')) && newData.exists()"
+    },
+    "counters": {
+      "orderNumber": {
+        ".read": "auth != null",
+        ".write": "(auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'waiter' || root.child('roles/' + auth.uid).val() === 'admin'))",
+        ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 1000) + 1"
+      }
+    },
+    "orders": {
+      ".read": "auth != null",
+      ".indexOn": [
+        "active",
+        "dayKey",
+        "waiterId",
+        "status"
+      ],
+      "$orderId": {
+        ".write": "!data.exists() && newData.exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'waiter' || root.child('roles/' + auth.uid).val() === 'admin'))",
+        ".validate": "newData.hasChildren(['orderId','tableNumber','waiterId','waiterName','items','status','active','dayKey','createdAt','sentAt'])",
+        "schemaVersion": {
+          ".validate": "newData.isNumber()"
+        },
+        "orderId": {
+          ".validate": "newData.val() === $orderId"
+        },
+        "orderNumber": {
+          ".validate": "newData.isNumber()"
+        },
+        "type": {
+          ".validate": "newData.val() === 'NORMAL' || newData.val() === 'CORRECTION'"
+        },
+        "correctionOf": {
+          ".validate": "newData.hasChild('orderId')"
+        },
+        "tableNumber": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 500"
+        },
+        "waiterId": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80"
+        },
+        "waiterName": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80"
+        },
+        "deviceId": {
+          ".validate": "newData.isString()"
+        },
+        "itemCount": {
+          ".validate": "newData.isNumber()"
+        },
+        "generalNotes": {
+          ".validate": "newData.isString() && newData.val().length <= 1000"
+        },
+        "dayKey": {
+          ".validate": "newData.isString() && newData.val().length === 10"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "clientSentAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "sentAt": {
+          ".validate": "newData.val() === now"
+        },
+        "items": {
+          "$i": {
+            ".validate": "newData.hasChildren(['productName','quantity'])",
+            "productId": {
+              ".validate": "newData.isString()"
+            },
+            "productName": {
+              ".validate": "newData.isString() && newData.val().length <= 120"
+            },
+            "category": {
+              ".validate": "newData.isString()"
+            },
+            "quantity": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 999"
+            },
+            "referencePrice": {
+              ".validate": "newData.isNumber()"
+            },
+            "notes": {
+              ".validate": "newData.isString() && newData.val().length <= 300"
+            },
+            "lineId": {
+              ".validate": "newData.isString()"
+            },
+            "prepared": {
+              ".write": "data.exists() && root.child('orders/' + $orderId).exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'kitchen' || root.child('roles/' + auth.uid).val() === 'admin'))",
+              ".validate": "newData.isBoolean()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "status": {
+          ".write": "root.child('orders/' + $orderId).exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'kitchen' || root.child('roles/' + auth.uid).val() === 'admin')) && ((data.val() === 'NEW' && newData.val() === 'ACCEPTED') || ((data.val() === 'NEW' || data.val() === 'ACCEPTED') && newData.val() === 'COMPLETED'))",
+          ".validate": "(data.exists() || newData.val() === 'NEW') && (newData.val() === 'NEW' || newData.val() === 'ACCEPTED' || newData.val() === 'COMPLETED')"
+        },
+        "active": {
+          ".write": "root.child('orders/' + $orderId).exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'waiter' || root.child('roles/' + auth.uid).val() === 'admin')) && data.val() === true && newData.val() === false && data.parent().child('status').val() === 'COMPLETED'",
+          ".validate": "newData.isBoolean()"
+        },
+        "acceptedAt": {
+          ".write": "root.child('orders/' + $orderId).exists() && !data.exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'kitchen' || root.child('roles/' + auth.uid).val() === 'admin'))",
+          ".validate": "newData.val() === now"
+        },
+        "acceptedBy": {
+          ".write": "root.child('orders/' + $orderId).exists() && !data.exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'kitchen' || root.child('roles/' + auth.uid).val() === 'admin'))",
+          ".validate": "newData.hasChild('name')"
+        },
+        "completedAt": {
+          ".write": "root.child('orders/' + $orderId).exists() && !data.exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'kitchen' || root.child('roles/' + auth.uid).val() === 'admin'))",
+          ".validate": "newData.val() === now"
+        },
+        "completedBy": {
+          ".write": "root.child('orders/' + $orderId).exists() && !data.exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'kitchen' || root.child('roles/' + auth.uid).val() === 'admin'))",
+          ".validate": "newData.hasChild('name')"
+        },
+        "waiterNotification": {
+          ".write": "root.child('orders/' + $orderId).exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'kitchen' || root.child('roles/' + auth.uid).val() === 'admin')) && data.child('status').val() === 'NONE' && newData.child('status').val() === 'PENDING'",
+          ".validate": "newData.hasChild('status')",
+          "status": {
+            ".write": "root.child('orders/' + $orderId).exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'waiter' || root.child('roles/' + auth.uid).val() === 'admin')) && ((data.val() === 'PENDING' && newData.val() === 'DELIVERED') || ((data.val() === 'PENDING' || data.val() === 'DELIVERED') && newData.val() === 'ACKNOWLEDGED'))",
+            ".validate": "newData.val() === 'NONE' || newData.val() === 'PENDING' || newData.val() === 'DELIVERED' || newData.val() === 'ACKNOWLEDGED'"
+          },
+          "createdAt": {
+            ".validate": "newData.val() === now"
+          },
+          "deliveredAt": {
+            ".write": "root.child('orders/' + $orderId).exists() && !data.exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'waiter' || root.child('roles/' + auth.uid).val() === 'admin'))",
+            ".validate": "newData.val() === now"
+          },
+          "acknowledgedAt": {
+            ".write": "root.child('orders/' + $orderId).exists() && !data.exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'waiter' || root.child('roles/' + auth.uid).val() === 'admin'))",
+            ".validate": "newData.val() === now"
+          },
+          "acknowledgedBy": {
+            ".write": "root.child('orders/' + $orderId).exists() && !data.exists() && (auth != null && (root.child('security/requireRoles').val() !== true || root.child('roles/' + auth.uid).val() === 'waiter' || root.child('roles/' + auth.uid).val() === 'admin'))"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "events": {
+          "$eventId": {
+            ".write": "auth != null && !data.exists() && newData.exists() && root.child('orders/' + $orderId).exists()",
+            ".validate": "newData.hasChildren(['type','at']) && newData.child('type').isString()"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
