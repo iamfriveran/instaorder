@@ -15,13 +15,13 @@
  * entre pestañas del mismo navegador. Sirve para probar, NO para operar.
  */
 export const firebaseConfig = {
-  apiKey: "PEGAR_AQUI",
-  authDomain: "TU-PROYECTO.firebaseapp.com",
-  databaseURL: "https://TU-PROYECTO-default-rtdb.firebaseio.com",
-  projectId: "TU-PROYECTO",
-  storageBucket: "TU-PROYECTO.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:0000000000000000"
+  apiKey: "AIzaSyBvqnr6YA1JGNeKeUOtxM0CQ9IGwTo14Ys",
+  authDomain: "instaorder-takolandia.firebaseapp.com",
+  databaseURL: "https://instaorder-takolandia-default-rtdb.firebaseio.com",
+  projectId: "instaorder-takolandia",
+  storageBucket: "instaorder-takolandia.firebasestorage.app",
+  messagingSenderId: "809932989663",
+  appId: "1:809932989663:web:8d5a2eeaa367890392356a"
 };
 
 /**
