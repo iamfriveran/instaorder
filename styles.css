@@ -387,7 +387,7 @@ body[data-screen="historial"] { background: var(--cream); }
 .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 14px 14px 0; max-width: 1100px; margin: 0 auto; scrollbar-width: none; }
 .tab { flex: none; min-height: 46px; padding: 0 16px; border-radius: 12px 12px 0 0; border: 0; background: #ebe4f6; font-weight: 800; color: var(--purple); }
 .tab.on { background: #fff; color: var(--magenta); box-shadow: 0 -3px 0 var(--magenta) inset; }
-.settings { padding-top: 0; padding-bottom: 110px; }
+.settings { padding-top: 0; padding-bottom: calc(180px + var(--safe-b)); }
 .s-card { background: #fff; border-radius: 0 var(--radius) var(--radius) var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 14px; }
 .s-card h3 { margin: 0 0 8px; font-family: var(--display); color: var(--purple); }
 .s-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-weight: 700; }
