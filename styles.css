@@ -155,7 +155,6 @@ b.conn-ok { color: #0d7a3e; } b.conn-bad { color: var(--danger); background: non
 /* 5. Inicio ---------------------------------------------------------- */
 .home { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 20px;
   background:
-    radial-gradient(circle at 15% 10%, rgba(253, 208, 0, .35) 0 120px, transparent 121px),
     radial-gradient(circle at 90% 85%, rgba(226, 0, 122, .25) 0 160px, transparent 161px),
     linear-gradient(160deg, var(--purple) 0%, var(--purple-900) 100%); }
 .home-card { width: min(440px, 100%); background: #fff; border-radius: 28px; padding: 26px 22px 18px; text-align: center; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 10px; }
