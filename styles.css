@@ -479,7 +479,7 @@ body[data-screen="historial"] { background: var(--cream); }
   .conn-pill .conn-text { display: none; }
   .conn-pill { padding: 6px; }
   .chip-btn { min-height: 38px; padding: 0 10px; font-size: .85rem; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
-  .screen { padding: 12px; }
+  .screen { padding-left: 12px; padding-right: 12px; }
   .builder-top { top: 58px; margin: 0 -12px; padding-left: 12px; padding-right: 12px; }
   .table-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .product-list { grid-template-columns: 1fr; }
