@@ -102,7 +102,7 @@ function alertsTab() {
       ${[["chime", "Campanita"], ["bell", "Timbre"], ["beep", "Bip"]].map(([v, t]) => `<option value="${v}" ${p.soundTone === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
     <label class="s-row"><span>Volumen</span><input type="range" min="0.1" max="1" step="0.1" data-pref="volume" value="${p.volume}"></label>
     <label class="s-row"><span>Repetir sonido mientras haya alertas pendientes</span><select class="field" data-pref="repeatSeconds">
-      ${[[0, "No repetir"], [10, "Cada 10 s"], [20, "Cada 20 s"], [30, "Cada 30 s"], [60, "Cada 60 s"]].map(([v, t]) => `<option value="${v}" ${Number(p.repeatSeconds) === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+      ${[[0, "No repetir"], [5, "Cada 5 s"], [10, "Cada 10 s"], [20, "Cada 20 s"], [30, "Cada 30 s"], [60, "Cada 60 s"]].map(([v, t]) => `<option value="${v}" ${Number(p.repeatSeconds) === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
     <label class="s-row toggle"><span>Vibración (teléfonos Android)</span><input type="checkbox" data-pref="vibrate" ${p.vibrate ? "checked" : ""}></label>
     <label class="s-row"><span>Intensidad del parpadeo</span><select class="field" data-pref="blinkStyle">
       ${[["suave", "Suave"], ["normal", "Normal"], ["intenso", "Intenso"]].map(([v, t]) => `<option value="${v}" ${p.blinkStyle === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
