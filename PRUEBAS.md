@@ -40,3 +40,12 @@ Pruebas automatizadas ejecutadas el 19-nov-2026 con un navegador Chromium real (
 - [ ] Sonido y vibración en un iPhone y un Android reales (incluido modo silencio).
 - [ ] Instalación PWA en iPhone (Safari) y Android (Chrome).
 - [ ] Prueba de carga en hora pico (ej. 30 órdenes en 10 min).
+
+## v1.1.0 — Instalación en teléfonos (20-nov-2026)
+- ✅ Botón "Instalar INSTAOrder" visible en navegador; oculto al abrir como app instalada.
+- ✅ En iPhone (Safari simulado) el botón muestra las instrucciones de "Añadir a pantalla de inicio".
+- ✅ Pantalla Ayuda e instalación (#/ayuda) con estado de conexión.
+- ✅ Actualización: aviso "Nueva versión disponible · ACTUALIZAR AHORA", caché nueva, borradores conservados.
+- ✅ Regresión: 37/37 verificaciones + separación de bebidas.
+- [ ] Instalación real en Android (Chrome) y iPhone (Safari) — pendiente en dispositivos.
+- [ ] Compilar el APK en Android Studio e instalarlo — pendiente (no se pudo compilar en este entorno).

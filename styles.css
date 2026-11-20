@@ -518,3 +518,25 @@ body[data-screen="historial"] { background: var(--cream); }
 .station-btn.st-k { background: var(--purple-50); color: var(--purple); }
 .station-btn.st-w { background: #e3f4fb; color: #0b6283; }
 .p-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Instalación y ayuda ------------------------------------------------- */
+.install-btn { width: 100%; min-height: 54px; border-radius: 14px; border: 2px dashed var(--magenta); background: var(--magenta-50); color: #8c004c; font-weight: 800; font-size: 1rem; }
+.home-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; }
+.help { padding-bottom: calc(40px + var(--safe-b)); }
+.help .s-card { border-radius: var(--radius); }
+.help-status { display: grid; gap: 10px; }
+.help-status small { display: block; color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.help-steps, .help-list { margin: 6px 0; padding-left: 22px; line-height: 1.55; }
+.help-steps li, .help-list li { margin: 4px 0; }
+.kbd { display: inline-block; min-width: 24px; text-align: center; border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; background: var(--cream); font-weight: 800; }
+.center { text-align: center; }
+
+/* Áreas seguras de iPhone (notch / Dynamic Island / barra inferior) y modo app */
+.app-header { padding-left: calc(14px + env(safe-area-inset-left, 0px)); padding-right: calc(14px + env(safe-area-inset-right, 0px)); }
+.home { padding: calc(20px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) calc(20px + var(--safe-b)) calc(20px + env(safe-area-inset-left, 0px)); }
+@media (max-width: 640px) { .screen { padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); } }
+#conn-banner { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+@media (display-mode: standalone) {
+  body { -webkit-user-select: none; user-select: none; }
+  input, textarea { -webkit-user-select: text; user-select: text; }
+}

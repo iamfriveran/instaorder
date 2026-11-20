@@ -19,12 +19,13 @@ import { connPill, refreshConnPills, CONN_LABELS } from "./js/components.js";
 import { processOutbox } from "./js/outbox.js";
 import { getLastMode, setLastMode } from "./js/store.js";
 import { unlockAudio } from "./js/sound.js";
-import { esc, fmtClock, fmtDuration, toast, $ } from "./js/ui.js";
+import { esc, fmtClock, fmtDuration, toast, confirmDialog, $ } from "./js/ui.js";
 import { WaiterScreen, startWaiterAlerts } from "./js/waiter.js";
 import { KitchenScreen, HistoryScreen } from "./js/kitchen.js";
 import { SettingsScreen } from "./js/settings.js";
+import { initInstall, installButtonHtml, startInstall, onInstallChange, HelpScreen } from "./js/install.js";
 
-export const APP_VERSION = "1.0.0";
+export const APP_VERSION = "1.1.0";
 
 /* ------------------------------------------------------------------ */
 /* Pantalla de inicio                                                  */
@@ -58,13 +59,18 @@ const HomeScreen = {
             ${last === "cocina" ? '<span class="mode-last">Último usado</span>' : ""}
           </button>
         </div>
-        <button class="link-btn" data-go="config">⚙️ Configuración</button>
+        <div class="install-slot">${installButtonHtml()}</div>
+        <div class="home-links">
+          <button class="link-btn" data-go="config">⚙️ Configuración</button>
+          <button class="link-btn" data-go="ayuda">❓ Ayuda e instalación</button>
+        </div>
         <p class="home-version">v${APP_VERSION}${IS_DEMO ? " · modo demo local" : ""}</p>
       </div>
     </section>`;
     root.querySelector(".home").addEventListener("click", (e) => {
       const m = e.target.closest("[data-mode]");
       if (m) { unlockAudio(); setLastMode(m.dataset.mode); go(m.dataset.mode); return; }
+      if (e.target.closest("[data-install]")) { startInstall(); return; }
       const g = e.target.closest("[data-go]");
       if (g) go(g.dataset.go);
     });
@@ -168,10 +174,21 @@ function registerServiceWorker() {
       if (bar) return;
       bar = document.createElement("div");
       bar.id = "update-bar";
-      bar.innerHTML = `<span>Hay una nueva versión de INSTAOrder.</span>
-        <button class="btn btn-sm btn-yellow">Actualizar ahora</button>`;
+      bar.innerHTML = `<span>✨ Nueva versión disponible</span>
+        <button class="btn btn-sm btn-yellow">ACTUALIZAR AHORA</button>`;
       document.body.appendChild(bar);
-      bar.querySelector("button").onclick = () => worker.postMessage({ type: "SKIP_WAITING" });
+      bar.querySelector("button").onclick = async () => {
+        // No interrumpir un pedido en curso: avisar primero. El borrador está
+        // guardado en el teléfono y se recupera después de actualizar.
+        if (/^#\/mesero\/mesa\//.test(location.hash)) {
+          const ok = await confirmDialog("Pedido en curso",
+            "Estás tomando un pedido. Se guardará como borrador y podrás continuarlo después de actualizar.\n¿Actualizar ahora?",
+            "Actualizar", "primary");
+          if (!ok) return;
+        }
+        bar.querySelector("button").disabled = true;
+        worker.postMessage({ type: "SKIP_WAITING" });
+      };
     };
     if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
     reg.addEventListener("updatefound", () => {
@@ -201,6 +218,11 @@ function registerServiceWorker() {
 
 async function boot() {
   document.addEventListener("pointerdown", unlockAudio, { passive: true });
+  initInstall();
+  onInstallChange(() => {
+    const slot = document.querySelector(".install-slot");
+    if (slot) slot.innerHTML = installButtonHtml();
+  });
   registerServiceWorker();
   setInterval(tickClocks, 1000);
 
@@ -261,6 +283,7 @@ async function boot() {
   defineRoute("cocina", KitchenScreen);
   defineRoute("historial", HistoryScreen);
   defineRoute("config", SettingsScreen);
+  defineRoute("ayuda", HelpScreen);
 
   // Recordar el último modo usado en este dispositivo.
   if (!location.hash || location.hash === "#/" || location.hash === "#") {

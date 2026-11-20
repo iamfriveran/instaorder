@@ -27,6 +27,7 @@ Sistema interno de pedidos en mesa y comunicación en tiempo real entre **mesero
 12. [Estructura de datos](#12-estructura-de-datos)
 13. [Seguridad: qué está implementado y qué configurar a mano](#13-seguridad-qué-está-implementado-y-qué-configurar-a-mano)
 14. [Limitaciones conocidas y alternativas](#14-limitaciones-conocidas-y-alternativas)
+15. [INSTALACIÓN DE INSTAOrder EN TELÉFONOS](#15-instalación-de-instaorder-en-teléfonos)
 
 ---
 
@@ -53,6 +54,7 @@ instaorder/
 │   ├── state.js           Estado compartido y valores por defecto
 │   ├── router.js          Navegación (#/mesero, #/cocina, …)
 │   ├── components.js      Cabecera e indicador de conexión
+│   ├── install.js         Botón "Instalar INSTAOrder" y pantalla de Ayuda
 │   ├── sound.js           Sonidos (Web Audio), vibración, pantalla encendida
 │   └── ui.js              Diálogos, avisos y formatos
 ├── assets/
@@ -379,3 +381,78 @@ Decisiones de diseño:
 | Sin conexión | Se puede tomar y confirmar un pedido sin Internet; queda marcado **NO ENVIADA** en el teléfono y se envía solo al reconectar (sin duplicar). Cocina no lo recibe hasta entonces. | Revisar *Mis pedidos* si el indicador muestra "Sin conexión". |
 | Identificación por nombre / PIN | No es autenticación (ver paso 6). | Usuarios Firebase individuales con roles. |
 | Historial de días anteriores | Se consulta por fecha (un día a la vez). | Para reportes: exportar JSON desde la consola de Firebase. |
+
+---
+
+## 15. INSTALACIÓN DE INSTAOrder EN TELÉFONOS
+
+INSTAOrder es una **aplicación web instalable (PWA)**: se instala desde el navegador, tiene su propio icono **INSTAOrder**, se abre a pantalla completa sin barras del navegador y se actualiza sola desde GitHub. No es una app de App Store/Play Store. Para Android también se entrega un **proyecto APK opcional** (ver I).
+
+Dentro de la app: **Inicio › ❓ Ayuda e instalación** muestra estas instrucciones y el estado de conexión.
+
+Dirección para instalar: **https://iamfriveran.github.io/instaorder/**
+
+### A. Instalación en Android
+1. Abre la dirección en **Chrome**.
+2. En la pantalla de inicio de INSTAOrder toca **📲 Instalar INSTAOrder en este teléfono** → **Instalar**.
+   Si el botón no abre el diálogo: menú **⋮ › Instalar aplicación** (o "Agregar a pantalla principal").
+3. El icono **INSTAOrder** aparece en la pantalla de inicio y en el cajón de apps.
+4. El botón de instalar desaparece cuando la app ya está instalada.
+
+### B. Instalación en iPhone
+1. Abre la dirección en **Safari**.
+2. Toca **Compartir** (cuadro con flecha ⬆︎).
+3. Elige **"Añadir a pantalla de inicio"**.
+4. Toca **"Añadir"**.
+5. Abre INSTAOrder desde el icono creado.
+
+En iPhone es una PWA (no una app nativa de iOS). Se respetan el notch, la Dynamic Island y la barra inferior (`safe-area-inset`).
+
+### C. Abrir la app desde el icono
+Toca **INSTAOrder**. Abre directo en la pantalla inicial (logo, hora, conexión, MODO MESERO / MODO COCINA) y recuerda el último modo usado en ese teléfono.
+
+### D. Cómo actualizar INSTAOrder
+- Publicas los cambios en GitHub (sección 10) y cambias `CACHE_VERSION` en `service-worker.js` y `APP_VERSION` en `app.js`.
+- Al abrir la app (o volver a ella), aparece abajo **"✨ Nueva versión disponible · ACTUALIZAR AHORA"**.
+- Si el mesero está tomando un pedido, la app avisa antes; el borrador queda guardado y se recupera después.
+- La actualización **no borra** órdenes activas, historial ni pedidos pendientes de envío (están en Firebase y en el almacenamiento del teléfono, no en la caché).
+- No hay que reinstalar el icono.
+
+### E. Si el icono no aparece
+- Android: revisa el **cajón de aplicaciones**; en Ajustes › Apps › Chrome permite "Agregar accesos directos a la pantalla principal". Usa Chrome (algunos navegadores de fabricante no instalan PWA).
+- iPhone: debe hacerse desde **Safari** (o Chrome con iOS 16.4+ por el menú Compartir). Repite "Añadir a pantalla de inicio".
+- Si se instaló una versión vieja: desinstala el icono y vuelve a instalar desde la dirección (los pedidos no se pierden).
+
+### F. Verificar la conexión a Firebase
+- El indicador de la pantalla inicial y de las cabeceras debe decir **● Conectado** (verde).
+- **Configuración › Sistema** muestra Base de datos = "Firebase Realtime Database" y el UID de la sesión.
+- Si dice **Modo demo local**, `firebase-config.js` no tiene la configuración real. Si dice **Sin conexión / Reconectando**, revisa Internet: los pedidos NO se envían hasta volver a "Conectado".
+
+### G. Pedidos en tiempo real vs. actualizaciones de software
+| | Pedidos | Actualizaciones de la app |
+|---|---|---|
+| Qué es | Órdenes, estados, alertas | Diseño, funciones, correcciones |
+| Cómo viaja | Firebase, al instante | GitHub Pages → Service Worker |
+| Cuándo llega | Inmediato (con conexión) | Al abrir/volver a la app + "ACTUALIZAR AHORA" |
+| Necesita GitHub | No | Sí |
+
+### H. Limitaciones de PWA y notificaciones (especialmente iOS)
+**Implementado y garantizado con la app abierta y conectada:** alertas visuales con parpadeo, sonido opcional, vibración (Android) y actualización inmediata por Firebase.
+
+**Con la app cerrada o en segundo plano:** Firebase Realtime Database **por sí sola no envía notificaciones** con la app cerrada; sólo transmite datos a una app abierta. Para avisos push reales se necesita:
+1. **Firebase Cloud Messaging (FCM)** en el proyecto y un **par de claves VAPID** (Firebase Console › Configuración › Cloud Messaging › *Web Push certificates*). La clave pública va en la app; la privada nunca sale de Firebase.
+2. **Un backend que envíe el push** cuando cocina completa una orden: **Cloud Functions for Firebase** con un disparador en `orders/{id}/status` → requiere el **plan Blaze** (pago por uso, con nivel gratuito).
+3. Guardar el **token FCM de cada teléfono** asociado al mesero, y un `firebase-messaging-sw.js`.
+4. **iPhone:** Web Push sólo funciona en **iOS 16.4 o superior**, sólo con la app **instalada en la pantalla de inicio** (no en Safari) y con permiso de notificaciones aceptado dentro de la app.
+5. **Android:** funciona con Chrome; algunos fabricantes (ahorro de batería) retrasan las notificaciones.
+
+Esto no se implementó en esta versión porque requiere el plan Blaze y una función de servidor. Mientras tanto: mantener INSTAOrder abierta durante el turno. Si quieres, es la siguiente fase.
+
+Otras limitaciones iOS: el sonido no suena en modo silencio; iOS puede suspender la app al bloquear el teléfono (al volver, se resincroniza sola y muestra las alertas pendientes); la pantalla de carga en iPhone es la del sistema (no personalizada).
+
+### I. APK para Android (opcional)
+Se entrega aparte el proyecto **`INSTAOrder_Android.zip`** (Capacitor). El APK abre esta misma PWA (mismo Firebase, catálogo y datos) a pantalla completa y se actualiza solo desde GitHub. **No está compilado**: requiere Android Studio; los pasos están en `LEEME-ANDROID.md` (APK de prueba, firma de producción, instalación y actualización).
+
+Alternativa sin Android Studio: **https://www.pwabuilder.com** › escribe la dirección de INSTAOrder › **Package for stores › Android** › descarga el APK firmado de prueba. Usa el mismo `manifest.json` e iconos.
+
+Para el personal, **la PWA (A y B) es la opción recomendada**: no requiere instalar archivos ni permitir orígenes desconocidos.
