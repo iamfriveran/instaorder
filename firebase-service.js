@@ -32,6 +32,11 @@
 
 import { firebaseConfig, AUTH_MODE, FIREBASE_SDK_VERSION, IS_DEMO } from "./firebase-config.js";
 
+/** Usuarios con contraseña y roles administrados desde la app ("users"; "email" es el nombre anterior). */
+export const USERS_MODE = (!IS_DEMO && (AUTH_MODE === "users" || AUTH_MODE === "email"))
+  // Sólo para probar en modo demo: localStorage "instaorder.demo.users" = "1".
+  || (IS_DEMO && typeof localStorage !== "undefined" && localStorage.getItem("instaorder.demo.users") === "1");
+
 /* ------------------------------------------------------------------ */
 /* Utilidades                                                          */
 /* ------------------------------------------------------------------ */
@@ -137,6 +142,7 @@ class FirebaseAdapter {
       import(`${base}/firebase-auth.js`),
     ]);
     this.f = { ...dbMod, ...authMod };
+    this.appMod = appMod;
     this.app = appMod.initializeApp(firebaseConfig);
     this.db = dbMod.getDatabase(this.app);
     this.auth = authMod.getAuth(this.app);
@@ -174,7 +180,48 @@ class FirebaseAdapter {
     });
   }
 
-  needsLogin() { return AUTH_MODE === "email" && !this.user; }
+  /** En modo usuarios, una sesión anónima antigua (del modo anterior) no sirve: pide iniciar sesión. */
+  needsLogin() { return USERS_MODE && (!this.user || this.user.isAnonymous); }
+
+  /* ---------- Modo "users": usuario + contraseña administrados desde la app ---------- */
+
+  /** "Saby" -> "saby@instaorder-takolandia.firebaseapp.com" (correo interno, nunca recibe correos). */
+  usernameToEmail(username) {
+    return `${String(username).trim().toLowerCase()}@${firebaseConfig.authDomain}`;
+  }
+
+  async signInUser(username, password) {
+    await this.f.signInWithEmailAndPassword(this.auth, this.usernameToEmail(username), password);
+  }
+
+  /** Crea la cuenta y deja la sesión iniciada con ella (sólo para el primer Admin). */
+  async createOwnAccount(username, password) {
+    const cred = await this.f.createUserWithEmailAndPassword(this.auth, this.usernameToEmail(username), password);
+    return cred.user.uid;
+  }
+
+  /**
+   * El Admin crea la cuenta de otro empleado SIN cerrar su propia sesión:
+   * se usa una segunda instancia de Firebase sólo en memoria.
+   */
+  async createAuthUser(username, password) {
+    const name = "instaorder-creator";
+    const sec = this.appMod.getApps().find((a) => a.name === name) || this.appMod.initializeApp(firebaseConfig, name);
+    const auth2 = this.f.getAuth(sec);
+    await this.f.setPersistence(auth2, this.f.inMemoryPersistence);
+    const cred = await this.f.createUserWithEmailAndPassword(auth2, this.usernameToEmail(username), password);
+    const uid = cred.user.uid;
+    await this.f.signOut(auth2);
+    return uid;
+  }
+
+  /** Cada empleado cambia su propia contraseña (pide la actual). */
+  async changeOwnPassword(current, next) {
+    const user = this.auth.currentUser;
+    const cred = this.f.EmailAuthProvider.credential(user.email, current);
+    await this.f.reauthenticateWithCredential(user, cred);
+    await this.f.updatePassword(user, next);
+  }
 
   async signInEmail(email, password) {
     await this.f.signInWithEmailAndPassword(this.auth, email, password);
@@ -247,7 +294,7 @@ const DEMO_KEY = "instaorder.demo.db";
 class LocalAdapter {
   constructor() {
     this.kind = "demo";
-    this.uid = "demo-" + (localStorage.getItem("instaorder.deviceId") || "device");
+    this.uid = sessionStorage.getItem("instaorder.demo.session") || "demo-" + (localStorage.getItem("instaorder.deviceId") || "device");
     this.listeners = new Set();
     this.connListeners = new Set();
     this.simOffline = sessionStorage.getItem("instaorder.demo.offline") === "1";
@@ -260,8 +307,33 @@ class LocalAdapter {
     window.addEventListener("storage", (e) => { if (e.key === DEMO_KEY) this._emit(); });
   }
 
-  needsLogin() { return false; }
+  /* --- Simulación de usuarios en modo demo (contraseñas en claro: SÓLO PRUEBAS) --- */
+  get user() { const u = sessionStorage.getItem("instaorder.demo.session"); return u ? { uid: u } : null; }
+  needsLogin() { return USERS_MODE && !this.user; }
   onAuth() { return () => {}; }
+  _auth() { return getAt(this._read(), "__auth") || {}; }
+  async signInUser(username, password) {
+    const a = this._auth()[username];
+    if (!a || a.password !== password) { const e = new Error("bad"); e.code = "auth/invalid-credential"; throw e; }
+    sessionStorage.setItem("instaorder.demo.session", a.uid); this.uid = a.uid;
+  }
+  async createAuthUser(username, password) {
+    if (this._auth()[username]) { const e = new Error("dup"); e.code = "auth/email-already-in-use"; throw e; }
+    const uid = "U" + randomId(10);
+    await this.update({ [`__auth/${username}`]: { uid, password } });
+    return uid;
+  }
+  async createOwnAccount(username, password) {
+    const uid = await this.createAuthUser(username, password);
+    sessionStorage.setItem("instaorder.demo.session", uid); this.uid = uid;
+    return uid;
+  }
+  async changeOwnPassword(current, next) {
+    const entry = Object.entries(this._auth()).find(([, v]) => v.uid === this.uid);
+    if (!entry || entry[1].password !== current) { const e = new Error("bad"); e.code = "auth/invalid-credential"; throw e; }
+    await this.update({ [`__auth/${entry[0]}/password`]: next });
+  }
+  async signOut() { sessionStorage.removeItem("instaorder.demo.session"); }
 
   get state() { return this.simOffline ? "offline" : "demo"; }
   onConnection(cb) { this.connListeners.add(cb); cb(this.state); return () => this.connListeners.delete(cb); }
@@ -562,6 +634,59 @@ class DataService {
 
   /* ---------- Sesión (modo email) ---------- */
   needsLogin() { return this.adapter.needsLogin(); }
+  get usersMode() { return USERS_MODE; }
+
+  /* ---------- Usuarios (modo "users") ---------- */
+
+  /** ¿Ya existe el primer Admin? (dato público: sólo true/false). */
+  async isBootstrapped() { return (await this.adapter.get("security/bootstrapped")) === true; }
+
+  _profile({ username, displayName, roles, shared }, createdBy) {
+    return {
+      username: String(username).trim().toLowerCase(),
+      displayName: String(displayName).trim(),
+      roles: { waiter: !!roles.waiter, kitchen: !!roles.kitchen, admin: !!roles.admin },
+      shared: !!shared,
+      active: true,
+      createdAt: SERVER_TS,
+      createdBy: createdBy || "",
+    };
+  }
+
+  /** Configuración inicial: la primera persona crea su cuenta y queda como Admin. */
+  async bootstrapAdmin({ username, displayName, password }) {
+    const uid = await this.adapter.createOwnAccount(username, password);
+    await this.adapter.update({
+      [`users/${uid}`]: this._profile({ username, displayName, roles: { waiter: true, kitchen: true, admin: true } }, uid),
+      "security/bootstrapped": true,
+    });
+    return uid;
+  }
+
+  /** El Admin crea un empleado con usuario, contraseña y roles. */
+  async createUser(data, admin) {
+    if (!this.adapter.isConnected()) throw new OfflineError();
+    const uid = await this.adapter.createAuthUser(data.username, data.password);
+    await this.adapter.update({ [`users/${uid}`]: this._profile(data, admin?.id) });
+    return uid;
+  }
+
+  /** Cambia roles, nombre, tablet compartida o activa/desactiva (sólo Admin). */
+  updateUser(uid, patch, admin) {
+    if (!this.adapter.isConnected()) return Promise.reject(new OfflineError());
+    const map = {};
+    for (const [k, v] of Object.entries(patch)) map[`users/${uid}/${k}`] = v;
+    map[`users/${uid}/updatedAt`] = SERVER_TS;
+    map[`users/${uid}/updatedBy`] = admin?.id || "";
+    return this.adapter.update(map);
+  }
+
+  watchUser(uid, cb, onError) { return this.adapter.listen(`users/${uid}`, cb, onError); }
+  watchUsers(cb, onError) {
+    return this.adapter.listen("users", (v) => cb(Object.entries(v || {}).map(([uid, u]) => ({ uid, ...u }))), onError);
+  }
+  signInUser(u, p) { return this.adapter.signInUser(u, p); }
+  changeOwnPassword(c, n) { return this.adapter.changeOwnPassword(c, n); }
   signInEmail(e, p) { return this.adapter.signInEmail(e, p); }
   signOut() { return this.adapter.signOut ? this.adapter.signOut() : Promise.resolve(); }
   onAuth(cb) { return this.adapter.onAuth(cb); }

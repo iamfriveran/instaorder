@@ -28,6 +28,7 @@ Sistema interno de pedidos en mesa y comunicación en tiempo real entre **mesero
 13. [Seguridad: qué está implementado y qué configurar a mano](#13-seguridad-qué-está-implementado-y-qué-configurar-a-mano)
 14. [Limitaciones conocidas y alternativas](#14-limitaciones-conocidas-y-alternativas)
 15. [INSTALACIÓN DE INSTAOrder EN TELÉFONOS](#15-instalación-de-instaorder-en-teléfonos)
+16. [USUARIOS, CONTRASEÑAS Y ROLES](#16-usuarios-contraseñas-y-roles)
 
 ---
 
@@ -53,6 +54,7 @@ instaorder/
 │   ├── store.js           Datos locales del dispositivo (borradores, preferencias)
 │   ├── state.js           Estado compartido y valores por defecto
 │   ├── router.js          Navegación (#/mesero, #/cocina, …)
+│   ├── auth.js            Inicio de sesión, primer Admin, cuentas bloqueadas
 │   ├── components.js      Cabecera e indicador de conexión
 │   ├── install.js         Botón "Instalar INSTAOrder" y pantalla de Ayuda
 │   ├── sound.js           Sonidos (Web Audio), vibración, pantalla encendida
@@ -456,3 +458,44 @@ Se entrega aparte el proyecto **`INSTAOrder_Android.zip`** (Capacitor). El APK a
 Alternativa sin Android Studio: **https://www.pwabuilder.com** › escribe la dirección de INSTAOrder › **Package for stores › Android** › descarga el APK firmado de prueba. Usa el mismo `manifest.json` e iconos.
 
 Para el personal, **la PWA (A y B) es la opción recomendada**: no requiere instalar archivos ni permitir orígenes desconocidos.
+
+---
+
+## 16. USUARIOS, CONTRASEÑAS Y ROLES
+
+Desde la versión 1.2.0 (`AUTH_MODE = "users"` en `firebase-config.js`) cada empleado entra con **usuario y contraseña**, y el **Admin administra los usuarios desde la app**: *Configuración › Usuarios*.
+
+### Roles (uno o varios por persona)
+| Rol | Puede |
+|---|---|
+| 🧾 Mesero | Modo mesero: tomar y enviar pedidos, recibir y aceptar sus alertas "LISTO PARA SERVIR" |
+| 👨‍🍳 Cocina | Modo cocina e historial: aceptar, marcar y completar órdenes |
+| 🛡️ Admin | Todo lo anterior + General, Usuarios y Catálogo |
+| 📟 Tablet compartida | Marca para la cuenta de la tablet de cocina: al aceptar/completar, cada cocinero elige su nombre |
+
+Un empleado con Mesero + Cocina ve los dos modos y cambia entre ellos. Cada persona sólo ve los modos que tiene permitidos. Su nombre se toma de su cuenta (ya no se elige de una lista).
+
+### Activación (una sola vez, ~10 minutos, idealmente fuera del horario de servicio)
+> Entre los pasos 2 y 4 los dispositivos dejan de funcionar hasta que cada persona inicie sesión.
+
+1. **Firebase Console › Authentication › Sign-in method › Add new provider › Email/Password** › activa **sólo el primer interruptor** (Email/Password) › **Save**.
+2. **Realtime Database › Rules**: borra todo, pega el nuevo `database.rules.json` › **Publish**.
+3. Sube los archivos de esta versión a GitHub.
+4. Abre INSTAOrder: aparece **"Configuración inicial"**. Crea tu usuario **Administrador** (nombre, usuario, contraseña). **La primera persona que lo haga queda como Admin**, por eso hazlo tú enseguida.
+5. *Configuración › Usuarios* › crea a cada empleado (botón 🎲 genera una contraseña de 6 dígitos) y entrega sus datos.
+6. Crea la cuenta de la tablet de cocina (rol Cocina + "Tablet compartida") e inicia sesión con ella en la tablet.
+7. **Authentication › Sign-in method › Anonymous › Disable** (ya no se usa).
+
+### Operación diaria
+- **Nuevo empleado:** *Usuarios › Nuevo usuario*.
+- **Renuncia:** *Usuarios › ⛔ Desactivar*. Pierde el acceso **al instante** en todos sus dispositivos (las reglas de Firebase rechazan cualquier lectura o escritura de una cuenta desactivada). Sus órdenes e historial se conservan. Se puede **Reactivar**.
+- **Olvidó su contraseña:** *Usuarios › 🔑 Olvidó su contraseña*: desactiva la cuenta y prepara una nueva con los mismos roles (ej. `saby2`) y una contraseña nueva. La contraseña de otra persona no se puede ver ni cambiar sin un servidor (Cloud Functions, plan Blaze).
+- **Cambiar mi contraseña:** *Configuración › Mi cuenta*.
+- **Teléfono que pasa a otra persona:** *Mi cuenta › Cerrar sesión*.
+- Debe quedar siempre al menos un Admin activo; un Admin no puede quitarse a sí mismo el rol ni desactivarse.
+
+### Qué protege y qué no
+- Las reglas exigen una cuenta **activa con el rol correcto** para cada acción: un mesero no puede aceptar ni completar órdenes; sólo el mesero de la orden (o un Admin) acepta su alerta; las órdenes se crean a nombre de quien tiene la sesión; sólo un Admin cambia configuración, catálogo y usuarios.
+- Cualquiera que tenga la dirección podría crear una cuenta en Firebase, pero **sin perfil ni roles no puede ver ni hacer nada**.
+- Los usuarios usan un correo interno (`usuario@instaorder-takolandia.firebaseapp.com`) que nunca recibe correos.
+- El PIN de Configuración ya no se usa en este modo.

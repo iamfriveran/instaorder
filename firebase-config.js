@@ -26,13 +26,14 @@ export const firebaseConfig = {
 
 /**
  * Modo de autenticación de los dispositivos:
- *  - "anonymous": cada dispositivo inicia sesión anónima automáticamente.
- *                 Simple; las reglas exigen sesión, pero no distinguen roles.
- *  - "email":     cada dispositivo inicia sesión una vez con un usuario
- *                 (correo/contraseña) creado en Firebase Console. Permite
- *                 roles (mesero / cocina / admin) con security/requireRoles.
+ *  - "users":     RECOMENDADO. Cada empleado entra con usuario y contraseña.
+ *                 El Admin crea usuarios, asigna roles (Mesero / Cocina / Admin,
+ *                 uno o varios) y desactiva cuentas desde Configuración › Usuarios.
+ *                 Requiere habilitar "Correo electrónico/contraseña" en Firebase
+ *                 Authentication y publicar database.rules.json.
+ *  - "anonymous": modo anterior, sin usuarios (cualquiera con la dirección entra).
  */
-export const AUTH_MODE = "anonymous";
+export const AUTH_MODE = "users";
 
 /** Versión del SDK de Firebase cargado desde el CDN oficial (gstatic). */
 export const FIREBASE_SDK_VERSION = "10.14.1";

@@ -10,7 +10,7 @@
  */
 
 import { dataService, dayKeyOf } from "../firebase-service.js";
-import { state, activeCooks, activeWaiters } from "./state.js";
+import { state, activeCooks, allWaiters, can } from "./state.js";
 import { go } from "./router.js";
 import { appHeader, demoNotice } from "./components.js";
 import { getCook, setCook, getPrefs } from "./store.js";
@@ -111,8 +111,10 @@ function reconcile(container, orders) {
 
 export const KitchenScreen = {
   mount(el) {
+    if (!can("kitchen")) { toast("Tu usuario no tiene el rol de Cocina", "error"); go("inicio", { replace: true }); return; }
     root = el;
     const cook = getCook();
+    const fixedCook = state.usersMode && state.me && !state.me.shared;
     root.innerHTML = `${appHeader({
       subtitle: `${state.settings.restaurantName.toUpperCase()} – COCINA`,
       variant: "kitchen",
@@ -121,7 +123,7 @@ export const KitchenScreen = {
           <span class="kc kc-new"><b id="cnt-new">0</b> nuevas</span>
           <span class="kc kc-acc"><b id="cnt-acc">0</b> en preparación</span>
         </div>
-        <button class="chip-btn" data-action="cook">👨‍🍳 ${esc(cook?.name || "Identificarse")}</button>
+        <button class="chip-btn" data-action="${fixedCook ? "account" : "cook"}">👨‍🍳 ${esc(cook?.name || "Identificarse")}</button>
         <button class="chip-btn" data-action="history">📚 Historial</button>
         <button class="chip-btn" data-action="home" aria-label="Inicio">🏠</button>`,
     })}${demoNotice()}
@@ -191,6 +193,7 @@ async function onClick(e) {
   const o = id ? state.activeOrders.find((x) => x.orderId === id) : null;
   switch (b.dataset.action) {
     case "home": go("inicio"); break;
+    case "account": go("config/cuenta"); break;
     case "history": go("historial"); break;
     case "unlock": unlockAudio(); setTimeout(() => KitchenScreen.update(), 200); toast("Sonido activado", "success"); break;
     case "cook": chooseCook(); break;
@@ -259,6 +262,7 @@ let hstate = { day: dayKeyOf(), table: "", id: "", waiter: "", status: "COMPLETE
 
 export const HistoryScreen = {
   mount(el) {
+    if (!can("kitchen")) { toast("Tu usuario no tiene el rol de Cocina", "error"); go("inicio", { replace: true }); return; }
     hroot = el;
     hstate.day = hstate.day || dayKeyOf();
     hroot.innerHTML = `${appHeader({ subtitle: "Historial de órdenes", back: "h-back" })}${demoNotice()}
@@ -268,7 +272,7 @@ export const HistoryScreen = {
         <label>Mesa<input class="field" type="number" min="1" inputmode="numeric" data-f="table" placeholder="Todas" value="${esc(hstate.table)}"></label>
         <label>ID / N.º orden<input class="field" type="search" data-f="id" placeholder="#1042 u ORD-…" value="${esc(hstate.id)}"></label>
         <label>Mesero<select class="field" data-f="waiter"><option value="">Todos</option>
-          ${activeWaiters().map((w) => `<option value="${esc(w.id)}" ${hstate.waiter === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></label>
+          ${allWaiters().map((w) => `<option value="${esc(w.id)}" ${hstate.waiter === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></label>
         <label>Estado<select class="field" data-f="status">
           <option value="COMPLETED" ${hstate.status === "COMPLETED" ? "selected" : ""}>Completadas</option>
           <option value="" ${hstate.status === "" ? "selected" : ""}>Todas</option></select></label>

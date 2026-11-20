@@ -18,7 +18,7 @@
  * actualizar la app no borra órdenes.
  */
 
-const CACHE_VERSION = "instaorder-v1.1.0";
+const CACHE_VERSION = "instaorder-v1.2.0";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -28,6 +28,7 @@ const APP_SHELL = [
   "./firebase-service.js",
   "./catalog.js",
   "./manifest.json",
+  "./js/auth.js",
   "./js/components.js",
   "./js/install.js",
   "./js/kitchen.js",

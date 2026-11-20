@@ -49,3 +49,14 @@ Pruebas automatizadas ejecutadas el 19-nov-2026 con un navegador Chromium real (
 - ✅ Regresión: 37/37 verificaciones + separación de bebidas.
 - [ ] Instalación real en Android (Chrome) y iPhone (Safari) — pendiente en dispositivos.
 - [ ] Compilar el APK en Android Studio e instalarlo — pendiente (no se pudo compilar en este entorno).
+
+## v1.2.0 — Usuarios y roles (20-nov-2026, simulación en modo demo)
+- ✅ Configuración inicial: el primer usuario queda como Admin.
+- ✅ Admin crea usuarios con roles múltiples (Mesero+Cocina) y tablet compartida.
+- ✅ Cada usuario sólo ve sus modos; un mesero no puede entrar a cocina.
+- ✅ Las órdenes guardan el usuario con sesión; la tablet compartida registra al cocinero elegido.
+- ✅ Alerta "listo" llega sólo a su mesero; cambio de contraseña propia.
+- ✅ Desactivar cuenta bloquea la app de esa persona al instante.
+- ✅ "Olvidó su contraseña" prepara una cuenta nueva con los mismos roles.
+- ✅ Regresión 37/37 + bebidas.
+- [ ] Pendiente con Firebase real: reglas nuevas (no hay emulador en este entorno). Probar tras activar: que un usuario desactivado no pueda leer órdenes y que un mesero no pueda completar una orden.

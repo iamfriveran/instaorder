@@ -13,7 +13,7 @@
 
 import { dataService } from "./firebase-service.js";
 import { IS_DEMO } from "./firebase-config.js";
-import { state, emit, subscribe, mergeSettings, normalizeCatalog, logoSrc } from "./js/state.js";
+import { state, emit, subscribe, mergeSettings, normalizeCatalog, logoSrc, can } from "./js/state.js";
 import { defineRoute, startRouter, go, refresh } from "./js/router.js";
 import { connPill, refreshConnPills, CONN_LABELS } from "./js/components.js";
 import { processOutbox } from "./js/outbox.js";
@@ -23,9 +23,10 @@ import { esc, fmtClock, fmtDuration, toast, confirmDialog, $ } from "./js/ui.js"
 import { WaiterScreen, startWaiterAlerts } from "./js/waiter.js";
 import { KitchenScreen, HistoryScreen } from "./js/kitchen.js";
 import { SettingsScreen } from "./js/settings.js";
+import { showLogin, watchMyProfile } from "./js/auth.js";
 import { initInstall, installButtonHtml, startInstall, onInstallChange, HelpScreen } from "./js/install.js";
 
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.2.0";
 
 /* ------------------------------------------------------------------ */
 /* Pantalla de inicio                                                  */
@@ -47,17 +48,18 @@ const HomeScreen = {
           <div class="home-date" data-clock="date"></div>
         </div>
         <div class="home-conn">${connPill()}</div>
+        ${state.me ? `<p class="home-user">👤 ${esc(state.me.displayName)} · <button class="link-btn sm" data-go="config/cuenta">Mi cuenta</button></p>` : ""}
         <div class="home-actions">
-          <button class="mode-btn mode-waiter" data-mode="mesero">
+          ${can("waiter") ? `<button class="mode-btn mode-waiter" data-mode="mesero">
             <span class="mode-ico">📱</span>
             <span class="mode-txt"><b>MODO MESERO</b><small>Tomar pedidos en mesa</small></span>
             ${last === "mesero" ? '<span class="mode-last">Último usado</span>' : ""}
-          </button>
-          <button class="mode-btn mode-kitchen" data-mode="cocina">
+          </button>` : ""}
+          ${can("kitchen") ? `<button class="mode-btn mode-kitchen" data-mode="cocina">
             <span class="mode-ico">👨‍🍳</span>
             <span class="mode-txt"><b>MODO COCINA</b><small>Pantalla de órdenes (tablet)</small></span>
             ${last === "cocina" ? '<span class="mode-last">Último usado</span>' : ""}
-          </button>
+          </button>` : ""}
         </div>
         <div class="install-slot">${installButtonHtml()}</div>
         <div class="home-links">
@@ -81,39 +83,6 @@ const HomeScreen = {
     if (img && img.getAttribute("src") !== logoSrc()) img.src = logoSrc();
   },
 };
-
-/* ------------------------------------------------------------------ */
-/* Inicio de sesión (sólo AUTH_MODE = "email")                         */
-/* ------------------------------------------------------------------ */
-
-function showLogin() {
-  const root = $("#app");
-  root.innerHTML = `
-  <section class="home">
-    <form class="home-card login-card" autocomplete="on">
-      <div class="logo-slot"><img src="assets/logo.png" class="home-logo" alt="Logo"></div>
-      <h1 class="home-title">INSTA<b>Order</b></h1>
-      <p class="home-sub">Inicia sesión una vez en este dispositivo</p>
-      <input class="field" name="email" type="email" placeholder="Usuario (correo)" required autocomplete="username">
-      <input class="field" name="password" type="password" placeholder="Contraseña" required autocomplete="current-password">
-      <button class="btn btn-primary btn-lg" type="submit">Entrar</button>
-      <p class="login-err" role="alert"></p>
-    </form>
-  </section>`;
-  root.querySelector("form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const f = e.target;
-    const btn = f.querySelector("button");
-    btn.disabled = true;
-    try {
-      await dataService.signInEmail(f.email.value.trim(), f.password.value);
-      location.reload();
-    } catch (err) {
-      f.querySelector(".login-err").textContent = "Usuario o contraseña incorrectos.";
-      btn.disabled = false;
-    }
-  });
-}
 
 /* ------------------------------------------------------------------ */
 /* Reloj y tiempos transcurridos (se actualizan cada segundo)          */
@@ -238,7 +207,13 @@ async function boot() {
     return;
   }
 
+  // Modo usuarios: iniciar sesión y verificar que la cuenta esté activa.
+  state.usersMode = dataService.usersMode;
   if (dataService.needsLogin()) { showLogin(); return; }
+  if (state.usersMode) {
+    await watchMyProfile(() => emit());
+    dataService.watchUsers((list) => { state.users = list; emit(); }, () => {});
+  }
 
   dataService.onConnection((s) => {
     const was = state.conn;
@@ -288,7 +263,7 @@ async function boot() {
   // Recordar el último modo usado en este dispositivo.
   if (!location.hash || location.hash === "#/" || location.hash === "#") {
     const last = getLastMode();
-    if (last === "mesero" || last === "cocina") history.replaceState(null, "", "#/" + last);
+    if ((last === "mesero" && can("waiter")) || (last === "cocina" && can("kitchen"))) history.replaceState(null, "", "#/" + last);
   }
 
   window.addEventListener("hashchange", updateConnBanner);

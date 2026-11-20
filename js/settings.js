@@ -16,7 +16,8 @@
 import { dataService, randomId } from "../firebase-service.js";
 import { IS_DEMO, AUTH_MODE } from "../firebase-config.js";
 import { DEFAULT_CATALOG } from "../catalog.js";
-import { state, DEFAULT_SETTINGS, normalizeCatalog, logoSrc } from "./state.js";
+import { state, DEFAULT_SETTINGS, normalizeCatalog, logoSrc, can } from "./state.js";
+import { authErrorText, normUser } from "./auth.js";
 import { go } from "./router.js";
 import { appHeader, demoNotice, CONN_LABELS } from "./components.js";
 import { getPrefs, setPrefs, pinUnlocked, setPinUnlocked, deviceId, getOutbox } from "./store.js";
@@ -27,11 +28,24 @@ let root = null;
 let tab = "alertas";
 let work = null; // copia de trabajo de lo compartido
 
-const TABS = [
+const TABS_PIN = [
   ["alertas", "🔔 Alertas"], ["general", "🏷️ General"], ["personal", "👥 Personal"],
   ["catalogo", "🌮 Catálogo"], ["sistema", "📡 Sistema"],
 ];
+const TABS_USERS = [
+  ["alertas", "🔔 Alertas"], ["cuenta", "👤 Mi cuenta"], ["general", "🏷️ General"], ["usuarios", "👥 Usuarios"],
+  ["catalogo", "🌮 Catálogo"], ["sistema", "📡 Sistema"],
+];
+const ADMIN_TABS = new Set(["general", "usuarios", "personal", "catalogo"]);
+// Modo sin usuarios: lo compartido se protege con PIN. Modo usuarios: con el rol Admin.
 const LOCKED = new Set(["general", "personal", "catalogo"]);
+
+function tabs() {
+  if (!state.usersMode) return TABS_PIN;
+  return TABS_USERS.filter(([k]) => !ADMIN_TABS.has(k) || can("admin"));
+}
+const isLocked = (k) => !state.usersMode && LOCKED.has(k) && !pinUnlocked();
+let newUser = { displayName: "", username: "", password: "", waiter: true, kitchen: false, admin: false, shared: false };
 
 function freshWork() {
   return {
@@ -70,18 +84,20 @@ export const SettingsScreen = {
 };
 
 function render() {
-  $("#s-tabs", root).innerHTML = TABS.map(([k, t]) =>
-    `<button class="tab ${tab === k ? "on" : ""}" data-action="tab" data-tab="${k}">${t}${LOCKED.has(k) && !pinUnlocked() ? " 🔒" : ""}</button>`).join("");
+  if (!tabs().some(([k]) => k === tab)) tab = "alertas";
+  $("#s-tabs", root).innerHTML = tabs().map(([k, t]) =>
+    `<button class="tab ${tab === k ? "on" : ""}" data-action="tab" data-tab="${k}">${t}${isLocked(k) ? " 🔒" : ""}</button>`).join("");
   const body = $("#s-body", root);
   const active = document.activeElement;
   if (body.contains(active) && active.matches("input[type=text],input:not([type]),textarea")) return; // no interrumpir escritura
-  if (LOCKED.has(tab) && !pinUnlocked()) {
+  if (isLocked(tab)) {
     body.innerHTML = `<div class="locked"><div class="lock-ico">🔒</div><p>Esta sección requiere el PIN de administración.</p>
       <button class="btn btn-primary btn-lg" data-action="unlock">Ingresar PIN</button>
       <p class="muted small">PIN inicial: 1234 (cámbialo en General).</p></div>`;
     return;
   }
-  body.innerHTML = ({ alertas: alertsTab, general: generalTab, personal: staffTab, catalogo: catalogTab, sistema: systemTab })[tab]();
+  body.innerHTML = ({ alertas: alertsTab, general: generalTab, personal: staffTab, catalogo: catalogTab, sistema: systemTab,
+    cuenta: accountTab, usuarios: usersTab })[tab]();
 }
 
 const saveBar = (what) => `<div class="save-bar ${work.dirty ? "dirty" : ""}">
@@ -136,11 +152,11 @@ function generalTab() {
         <p class="muted small">Se ajusta automáticamente a 320 px. También puedes reemplazar <code>assets/logo.png</code> en GitHub.</p>
       </div></div>
   </section>
-  <section class="s-card">
+  ${state.usersMode ? "" : `<section class="s-card">
     <h3>PIN de configuración</h3>
     <label class="s-row"><span>PIN (4–8 dígitos)</span><input class="field narrow" inputmode="numeric" data-ws="adminPin" value="${esc(s.adminPin)}"></label>
     <p class="muted small">El PIN evita cambios accidentales. No es autenticación real: ver README › Seguridad.</p>
-  </section>${saveBar("settings")}`;
+  </section>`}${saveBar("settings")}`;
 }
 
 /* ---------- Personal ---------- */
@@ -203,6 +219,176 @@ function catalogTab() {
   </section>${saveBar("catalog")}`;
 }
 
+/* ---------- Mi cuenta (modo usuarios) ---------- */
+
+const ROLE_TXT = { waiter: "🧾 Mesero", kitchen: "👨‍🍳 Cocina", admin: "🛡️ Admin" };
+const roleChips = (r = {}) => Object.keys(ROLE_TXT).filter((k) => r[k]).map((k) => `<span class="role-chip r-${k}">${ROLE_TXT[k]}</span>`).join(" ") || "<span class='muted'>Sin roles</span>";
+
+function accountTab() {
+  const me = state.me || {};
+  return `<section class="s-card">
+    <h3>Mi cuenta</h3>
+    <div class="sys-grid">
+      <div><small>Nombre</small><b>${esc(me.displayName)}</b></div>
+      <div><small>Usuario</small><b>${esc(me.username)}</b></div>
+      <div><small>Roles</small>${roleChips(me.roles)}</div>
+      ${me.shared ? `<div><small>Tipo</small>Tablet compartida de cocina</div>` : ""}
+    </div>
+  </section>
+  <section class="s-card">
+    <h3>Cambiar mi contraseña</h3>
+    <form class="pw-form" autocomplete="off">
+      <input class="field" name="cur" type="password" placeholder="Contraseña actual" required autocomplete="current-password">
+      <input class="field" name="n1" type="password" placeholder="Contraseña nueva (mínimo 6)" required minlength="6" autocomplete="new-password">
+      <input class="field" name="n2" type="password" placeholder="Repite la contraseña nueva" required minlength="6" autocomplete="new-password">
+      <button class="btn btn-primary" data-action="change-pw" type="button">Cambiar contraseña</button>
+    </form>
+  </section>
+  <section class="s-card">
+    <h3>Sesión</h3>
+    <p class="muted small">Cierra sesión si este teléfono lo va a usar otra persona.</p>
+    <button class="btn btn-danger-ghost" data-action="signout">Cerrar sesión</button>
+  </section>`;
+}
+
+/* ---------- Usuarios (sólo Admin) ---------- */
+
+function usersTab() {
+  const users = state.users.slice().sort((a, b) => (b.active === true) - (a.active === true) || a.displayName.localeCompare(b.displayName));
+  const n = newUser;
+  return `<section class="s-card">
+    <h3>➕ Nuevo usuario</h3>
+    <div class="nu-grid">
+      <label>Nombre (como aparecerá)<input class="field" data-nu="displayName" value="${esc(n.displayName)}" placeholder="Ej.: Saby" maxlength="40"></label>
+      <label>Usuario para entrar<input class="field" data-nu="username" value="${esc(n.username)}" placeholder="Ej.: saby" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
+      <label>Contraseña (mínimo 6)<span class="pw-row"><input class="field" data-nu="password" value="${esc(n.password)}" placeholder="Ej.: 482913" autocomplete="off">
+        <button class="btn btn-ghost btn-sm" data-action="nu-gen" type="button">🎲 Generar</button></span></label>
+    </div>
+    <div class="role-picks">
+      <label class="mini-toggle"><input type="checkbox" data-nur="waiter" ${n.waiter ? "checked" : ""}> 🧾 Mesero</label>
+      <label class="mini-toggle"><input type="checkbox" data-nur="kitchen" ${n.kitchen ? "checked" : ""}> 👨‍🍳 Cocina</label>
+      <label class="mini-toggle"><input type="checkbox" data-nur="admin" ${n.admin ? "checked" : ""}> 🛡️ Admin</label>
+      <label class="mini-toggle"><input type="checkbox" data-nur="shared" ${n.shared ? "checked" : ""}> 📟 Tablet compartida de cocina</label>
+    </div>
+    <p class="muted small">"Tablet compartida": cuenta para la tablet de cocina que usan varias personas; al aceptar o completar, cada cocinero elige su nombre.</p>
+    <button class="btn btn-primary" data-action="nu-create">Crear usuario</button>
+  </section>
+  <section class="s-card">
+    <h3>👥 Usuarios (${users.filter((u) => u.active === true).length} activos)</h3>
+    <p class="muted small">Los cambios se aplican al instante. Al desactivar una cuenta, esa persona pierde el acceso de inmediato; su historial se conserva.</p>
+    <div class="user-list">${users.map((u) => {
+      const self = u.uid === state.me?.uid;
+      const r = u.roles || {};
+      return `<div class="user-row ${u.active === true ? "" : "off"}">
+        <div class="ur-head">
+          <span class="avatar">${esc((u.displayName || "?").charAt(0).toUpperCase())}</span>
+          <div class="ur-name"><b>${esc(u.displayName)}</b>${self ? ' <span class="mini-chip st-sent">Tú</span>' : ""}<br><small>usuario: ${esc(u.username)}${u.shared ? " · 📟 tablet compartida" : ""}</small></div>
+          <span class="status-chip ${u.active === true ? "st-ready" : ""}">${u.active === true ? "Activo" : "Desactivado"}</span>
+        </div>
+        <div class="ur-roles">
+          ${["waiter", "kitchen", "admin"].map((k) => `<label class="mini-toggle"><input type="checkbox" data-urole="${k}" data-uid="${esc(u.uid)}" ${r[k] ? "checked" : ""} ${(self && k === "admin") || u.active !== true ? "disabled" : ""}> ${ROLE_TXT[k]}</label>`).join("")}
+        </div>
+        ${self ? "" : `<div class="ur-actions">
+          ${u.active === true
+            ? `<button class="btn btn-sm btn-danger-ghost" data-action="u-deactivate" data-uid="${esc(u.uid)}">⛔ Desactivar</button>
+               <button class="btn btn-sm btn-ghost" data-action="u-replace" data-uid="${esc(u.uid)}">🔑 Olvidó su contraseña</button>`
+            : `<button class="btn btn-sm btn-ghost" data-action="u-activate" data-uid="${esc(u.uid)}">✅ Reactivar</button>`}
+        </div>`}
+      </div>`;
+    }).join("")}</div>
+  </section>`;
+}
+
+const meAsAdmin = () => ({ id: state.me?.uid, name: state.me?.displayName });
+
+function genPassword() {
+  const a = new Uint32Array(1); crypto.getRandomValues(a);
+  return String(100000 + (a[0] % 900000));
+}
+
+async function createNewUser() {
+  const n = newUser;
+  const username = normUser(n.username);
+  if (!n.displayName.trim()) return toast("Escribe el nombre", "error");
+  if (!/^[a-z0-9._-]{3,30}$/.test(username)) return toast("Usuario: 3 a 30 letras minúsculas o números, sin espacios ni acentos", "error");
+  if (n.password.length < 6) return toast("La contraseña debe tener al menos 6 caracteres", "error");
+  if (!n.waiter && !n.kitchen && !n.admin) return toast("Marca al menos un rol", "error");
+  if (state.users.some((u) => u.username === username)) return toast("Ese usuario ya existe", "error");
+  const btn = $("[data-action=nu-create]", root);
+  btn.disabled = true; btn.textContent = "Creando…";
+  try {
+    await dataService.createUser({
+      username, displayName: n.displayName, password: n.password,
+      roles: { waiter: n.waiter, kitchen: n.kitchen, admin: n.admin }, shared: n.shared,
+    }, meAsAdmin());
+    const shown = { ...n, username };
+    newUser = { displayName: "", username: "", password: "", waiter: true, kitchen: false, admin: false, shared: false };
+    render();
+    await dialog({
+      title: "✅ Usuario creado",
+      html: true,
+      body: `<p>Entrega estos datos a <b>${esc(shown.displayName)}</b>:</p>
+        <div class="cred-box"><div>Usuario: <b>${esc(shown.username)}</b></div><div>Contraseña: <b>${esc(shown.password)}</b></div></div>
+        <p class="muted small">Que entre a INSTAOrder con estos datos. Puede cambiar su contraseña en Configuración › Mi cuenta.</p>`,
+      confirmText: "Listo", cancelText: "",
+    });
+  } catch (e) {
+    toast(authErrorText(e), "error", 5000);
+    btn.disabled = false; btn.textContent = "Crear usuario";
+  }
+}
+
+async function setUserActive(uid, active) {
+  const u = state.users.find((x) => x.uid === uid);
+  if (!u) return;
+  if (!active) {
+    const ok = await confirmDialog(`¿Desactivar a ${u.displayName}?`,
+      `${u.displayName} (usuario "${u.username}") pierde el acceso a INSTAOrder de inmediato en todos sus dispositivos.\nSus órdenes y su historial se conservan. Puedes reactivarlo cuando quieras.`,
+      "Desactivar", "danger");
+    if (!ok) return;
+  }
+  try { await dataService.updateUser(uid, { active }, meAsAdmin()); toast(active ? `${u.displayName} reactivado` : `${u.displayName} desactivado`, "success"); }
+  catch (e) { toast(authErrorText(e), "error"); }
+}
+
+async function replaceAccount(uid) {
+  const u = state.users.find((x) => x.uid === uid);
+  if (!u) return;
+  const ok = await confirmDialog("Olvidó su contraseña",
+    `Por seguridad, la contraseña de otra persona no se puede ver ni cambiar desde la app.\n\nSe DESACTIVARÁ la cuenta "${u.username}" y se preparará una cuenta nueva para ${u.displayName} con los mismos roles. Su historial anterior se conserva.`,
+    "Continuar");
+  if (!ok) return;
+  try { await dataService.updateUser(uid, { active: false }, meAsAdmin()); } catch (e) { return toast(authErrorText(e), "error"); }
+  let base = u.username.replace(/\d+$/, ""), i = 2;
+  while (state.users.some((x) => x.username === `${base}${i}`)) i++;
+  newUser = { displayName: u.displayName, username: `${base}${i}`, password: genPassword(),
+    waiter: !!u.roles?.waiter, kitchen: !!u.roles?.kitchen, admin: !!u.roles?.admin, shared: !!u.shared };
+  render();
+  root.querySelector(".settings").scrollIntoView?.({ behavior: "smooth" });
+  toast("Revisa los datos y toca 'Crear usuario'", "info", 4000);
+}
+
+async function toggleRole(uid, role, value, input) {
+  const u = state.users.find((x) => x.uid === uid);
+  const roles = { ...(u?.roles || {}), [role]: value };
+  if (!roles.waiter && !roles.kitchen && !roles.admin) { input.checked = !value; return toast("Debe tener al menos un rol (o desactívalo)", "error"); }
+  if (role === "admin" && !value && state.users.filter((x) => x.active === true && x.roles?.admin).length <= 1) {
+    input.checked = true; return toast("Debe quedar al menos un Admin activo", "error");
+  }
+  try { await dataService.updateUser(uid, { roles: { waiter: !!roles.waiter, kitchen: !!roles.kitchen, admin: !!roles.admin } }, meAsAdmin()); toast("Roles actualizados", "success"); }
+  catch (e) { input.checked = !value; toast(authErrorText(e), "error"); }
+}
+
+async function changeMyPassword() {
+  const f = $(".pw-form", root);
+  if (f.n1.value.length < 6) return toast("La contraseña nueva debe tener al menos 6 caracteres", "error");
+  if (f.n1.value !== f.n2.value) return toast("Las contraseñas nuevas no coinciden", "error");
+  const b = $("[data-action=change-pw]", root); b.disabled = true;
+  try { await dataService.changeOwnPassword(f.cur.value, f.n1.value); f.reset(); toast("Contraseña cambiada", "success"); }
+  catch (e) { toast(authErrorText(e), "error", 4500); }
+  b.disabled = false;
+}
+
 /* ---------- Sistema ---------- */
 
 function systemTab() {
@@ -213,13 +399,13 @@ function systemTab() {
     <div class="sys-grid">
       <div><small>Estado</small><b class="conn-${c.cls}">${c.text || state.conn}</b></div>
       <div><small>Base de datos</small>${IS_DEMO ? "MODO DEMO LOCAL (Firebase sin configurar)" : "Firebase Realtime Database"}</div>
-      <div><small>Autenticación</small>${IS_DEMO ? "—" : AUTH_MODE === "email" ? `Usuario: ${esc(dataService.userEmail)}` : "Anónima por dispositivo"}</div>
+      <div><small>Autenticación</small>${IS_DEMO ? "—" : state.usersMode ? `Usuario: ${esc(state.me?.username || "")}` : "Anónima por dispositivo"}</div>
       <div><small>UID</small><code>${esc(dataService.uid || "—")}</code></div>
       <div><small>Dispositivo</small><code>${esc(deviceId())}</code></div>
       <div><small>Órdenes sin enviar en este dispositivo</small>${queued}</div>
       <div><small>Órdenes activas</small>${state.activeOrders.length}</div>
     </div>
-    ${!IS_DEMO && AUTH_MODE === "email" ? `<button class="btn btn-ghost" data-action="signout">Cerrar sesión de este dispositivo</button>` : ""}
+    ${state.usersMode ? `<button class="btn btn-ghost" data-action="signout">Cerrar sesión de este dispositivo</button>` : ""}
   </section>
   ${IS_DEMO ? `<section class="s-card"><h3>Herramientas del modo demo</h3>
     <p class="muted small">Sólo existen en modo demo, para probar sin Firebase.</p>
@@ -241,7 +427,7 @@ async function save(what) {
       s.tableCount = Math.max(1, Math.min(200, parseInt(s.tableCount, 10) || 20));
       s.waiters = s.waiters.filter((w) => w.name.trim()).map((w) => ({ ...w, name: w.name.trim() }));
       s.kitchenStaff = s.kitchenStaff.filter((w) => w.name.trim()).map((w) => ({ ...w, name: w.name.trim() }));
-      if (!/^\d{4,8}$/.test(String(s.adminPin))) return toast("El PIN debe tener de 4 a 8 dígitos", "error");
+      if (!state.usersMode && !/^\d{4,8}$/.test(String(s.adminPin))) return toast("El PIN debe tener de 4 a 8 dígitos", "error");
       await dataService.saveSettings({
         restaurantName: s.restaurantName.trim() || DEFAULT_SETTINGS.restaurantName,
         restaurantSubtitle: s.restaurantSubtitle.trim(),
@@ -345,6 +531,12 @@ async function onClick(e) {
         work.catalog = JSON.parse(JSON.stringify(normalizeCatalog(DEFAULT_CATALOG))); work.catFilter = work.catalog.categories[0].id; markDirty(); render();
       }
       break;
+    case "nu-gen": newUser.password = genPassword(); { const i = $("[data-nu=password]", root); if (i) i.value = newUser.password; } break;
+    case "nu-create": createNewUser(); break;
+    case "u-deactivate": setUserActive(b.dataset.uid, false); break;
+    case "u-activate": setUserActive(b.dataset.uid, true); break;
+    case "u-replace": replaceAccount(b.dataset.uid); break;
+    case "change-pw": changeMyPassword(); break;
     case "signout":
       if (await confirmDialog("Cerrar sesión", "Este dispositivo dejará de recibir órdenes hasta que vuelvas a iniciar sesión.", "Cerrar sesión", "danger")) {
         await dataService.signOut(); location.reload();
@@ -374,6 +566,8 @@ function onChange(e) {
     toast("Preferencia guardada en este dispositivo");
     return;
   }
+  if (t.dataset.nur) { newUser[t.dataset.nur] = t.checked; if (t.dataset.nur === "shared" && t.checked) { newUser.kitchen = true; newUser.waiter = false; render(); } return; }
+  if (t.dataset.urole) { toggleRole(t.dataset.uid, t.dataset.urole, t.checked, t); return; }
   if (t.dataset.actionChange === "sim-offline") { dataService.adapter.setSimulatedOffline(t.checked); return; }
   if (t.dataset.actionChange === "logo" && t.files?.[0]) { loadLogo(t.files[0]); return; }
   if (t.dataset.staffActive) { work.settings[t.dataset.staffActive][+t.dataset.i].active = t.checked; markDirty(); render(); return; }
@@ -384,6 +578,7 @@ function onChange(e) {
 
 function onInput(e) {
   const t = e.target;
+  if (t.dataset.nu) { newUser[t.dataset.nu] = t.value; return; }
   if (t.dataset.ws) { work.settings[t.dataset.ws] = t.value; markDirty(); }
   else if (t.dataset.staff) { work.settings[t.dataset.staff][+t.dataset.i].name = t.value; markDirty(); }
   else if (t.dataset.prod === "name") { work.catalog.products[+t.dataset.i].name = t.value; markDirty(); }

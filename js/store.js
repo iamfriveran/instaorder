@@ -14,6 +14,7 @@
  */
 
 import { randomId } from "../firebase-service.js";
+import { state } from "./state.js";
 
 const K = {
   device: "instaorder.deviceId",
@@ -40,10 +41,12 @@ export function deviceId() {
 export const getLastMode = () => localStorage.getItem(K.mode);
 export const setLastMode = (m) => (m ? localStorage.setItem(K.mode, m) : localStorage.removeItem(K.mode));
 
-export const getWaiter = () => read(K.waiter, null);
+/** En modo usuarios, el mesero es siempre la persona con la sesión iniciada. */
+export const getWaiter = () => (state.usersMode && state.me ? { id: state.me.uid, name: state.me.displayName } : read(K.waiter, null));
 export const setWaiter = (w) => (w ? write(K.waiter, w) : localStorage.removeItem(K.waiter));
 
-export const getCook = () => read(K.cook, null);
+/** En modo usuarios, el cocinero es la persona con sesión (salvo en la tablet compartida). */
+export const getCook = () => (state.usersMode && state.me && !state.me.shared ? { id: state.me.uid, name: state.me.displayName } : read(K.cook, null));
 export const setCook = (c) => (c ? write(K.cook, c) : localStorage.removeItem(K.cook));
 
 /* ---------- Preferencias de alertas (por dispositivo) ---------- */

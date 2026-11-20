@@ -16,7 +16,7 @@
  */
 
 import { dataService } from "../firebase-service.js";
-import { state, subscribe, activeWaiters, categoryById } from "./state.js";
+import { state, subscribe, activeWaiters, categoryById, can } from "./state.js";
 import { go, currentRoute } from "./router.js";
 import { appHeader, demoNotice } from "./components.js";
 import { submitOrder, outboxEntries, processOutbox } from "./outbox.js";
@@ -92,6 +92,7 @@ let sending = false;
 
 export const WaiterScreen = {
   mount(el, params) {
+    if (!can("waiter")) { toast("Tu usuario no tiene el rol de Mesero", "error"); go("inicio", { replace: true }); return; }
     root = el;
     root.addEventListener("click", onClick);
     root.addEventListener("input", onInput);
@@ -118,6 +119,7 @@ export const WaiterScreen = {
 function route(params) {
   const waiter = getWaiter();
   const [a, b, c] = params;
+  if (state.usersMode && a === "identificar") return mountTables(); // el mesero es el usuario con sesión
   if (!waiter || a === "identificar") return mountSelect();
   if (a === "mesa" && b) return c === "resumen" ? mountSummary(Number(b)) : mountBuilder(Number(b));
   if (a === "pedidos") return mountMyOrders();
@@ -130,7 +132,7 @@ function waiterHeader(back) {
   return appHeader({
     subtitle: `${state.settings.restaurantName} – Mesero`,
     back,
-    right: w ? `<button class="chip-btn" data-action="change-waiter" aria-label="Cambiar mesero">👤 ${esc(w.name)}</button>` : "",
+    right: w ? `<button class="chip-btn" data-action="${state.usersMode ? "my-account" : "change-waiter"}" aria-label="${state.usersMode ? "Mi cuenta" : "Cambiar mesero"}">👤 ${esc(w.name)}</button>` : "",
   }) + demoNotice();
 }
 
@@ -592,6 +594,7 @@ async function onClick(e) {
     case "nav-tables": go("mesero"); break;
     case "nav-orders": go("mesero/pedidos"); break;
     case "change-waiter": go("mesero/identificar"); break;
+    case "my-account": go("config/cuenta"); break;
     case "pick-waiter": {
       const w = activeWaiters().find((x) => x.id === b.dataset.id);
       if (!w) return;

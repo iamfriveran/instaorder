@@ -32,6 +32,9 @@ export const state = {
   ordersLoaded: false,
   conn: "connecting",
   dataError: null,
+  usersMode: false,  // true = cada empleado entra con usuario y contraseña
+  me: null,          // perfil del usuario con sesión iniciada (modo usuarios)
+  users: [],         // lista de usuarios (modo usuarios)
 };
 
 const subs = new Set();
@@ -63,7 +66,29 @@ export function normalizeCatalog(c) {
 
 export const logoSrc = () => state.settings.logo || "assets/logo.png";
 
-export function activeWaiters() { return state.settings.waiters.filter((w) => w.active !== false); }
-export function activeCooks() { return state.settings.kitchenStaff.filter((w) => w.active !== false); }
+/** ¿El usuario actual puede usar este rol? ("waiter" | "kitchen" | "admin"). */
+export function can(role) {
+  if (!state.usersMode) return true;
+  const r = state.me?.roles || {};
+  return r.admin === true || r[role] === true;
+}
+
+const asStaff = (u) => ({ id: u.uid, name: u.displayName, active: u.active !== false });
+
+export function activeWaiters() {
+  if (state.usersMode) return state.users.filter((u) => u.active !== false && (u.roles?.waiter || u.roles?.admin) && !u.shared).map(asStaff);
+  return state.settings.waiters.filter((w) => w.active !== false);
+}
+
+/** Meseros para filtrar el historial (incluye los desactivados). */
+export function allWaiters() {
+  if (state.usersMode) return state.users.filter((u) => u.roles?.waiter && !u.shared).map(asStaff);
+  return state.settings.waiters;
+}
+
+export function activeCooks() {
+  if (state.usersMode) return state.users.filter((u) => u.active !== false && u.roles?.kitchen && !u.shared).map(asStaff);
+  return state.settings.kitchenStaff.filter((w) => w.active !== false);
+}
 
 export function categoryById(id) { return state.catalog.categories.find((c) => c.id === id); }

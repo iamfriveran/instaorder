@@ -7,6 +7,14 @@
 const routes = {};
 let current = null;
 let root = null;
+let locked = false;
+
+/** Detiene la navegación (cuenta desactivada): ninguna pantalla vuelve a dibujarse. */
+export function lockRouter() {
+  locked = true;
+  if (current?.screen?.unmount) { try { current.screen.unmount(); } catch { /* */ } }
+  current = null;
+}
 
 export function defineRoute(name, screen) { routes[name] = screen; }
 
@@ -26,6 +34,7 @@ function parse() {
 }
 
 export function render() {
+  if (locked) return;
   const { name, params } = parse();
   const screen = routes[name] || routes.inicio;
   if (current?.screen?.unmount) current.screen.unmount();
@@ -38,6 +47,7 @@ export function render() {
 }
 
 export function refresh() {
+  if (locked) return;
   if (current?.screen?.update) current.screen.update(current.params);
 }
 
