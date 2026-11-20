@@ -408,6 +408,8 @@ body[data-screen="historial"] { background: var(--cream); }
 .staff-row .field, .prod-row .field:first-child { flex: 1; min-width: 160px; }
 .staff-row small { width: 100%; font-size: .7rem; }
 .staff-row.off .field, .prod-row.off .field:first-child { opacity: .5; text-decoration: line-through; }
+.prod-row { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.prod-row .prod-desc { flex-basis: 100%; min-height: 44px; font-size: .92rem; }
 .mini-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; font-weight: 700; }
 .cat-row { border-bottom: 1px solid var(--line); }
 .cat-row.sel { background: var(--purple-50); border-radius: 10px; }

@@ -180,7 +180,7 @@ function catalogTab() {
   </section>
   ${cat ? `<section class="s-card">
     <h3>${esc(cat.icon || "")} ${esc(cat.name)} — productos</h3>
-    <p class="muted small">El precio es sólo referencial (se muestra al mesero, nunca se suma).</p>
+    <p class="muted small">El precio es sólo referencial (se muestra al mesero, nunca se suma). La descripción aparece al mesero y en la pantalla de cocina.</p>
     <div class="prod-admin">${prods.map((p) => {
       const i = c.products.indexOf(p);
       return `<div class="prod-row ${p.active === false ? "off" : ""}">
@@ -188,6 +188,8 @@ function catalogTab() {
         <input class="field narrow" data-prod="referencePrice" data-i="${i}" type="number" step="0.01" min="0" inputmode="decimal" value="${p.referencePrice ?? ""}" aria-label="Precio referencial">
         <select class="field narrow" data-prod="categoryId" data-i="${i}" aria-label="Categoría">${c.categories.map((k) => `<option value="${esc(k.id)}" ${k.id === p.categoryId ? "selected" : ""}>${esc(k.name)}</option>`).join("")}</select>
         <label class="mini-toggle"><input type="checkbox" data-prod-active="${i}" ${p.active !== false ? "checked" : ""}> Activo</label>
+        <input class="field prod-desc" data-prod="description" data-i="${i}" value="${esc(p.description || "")}"
+          placeholder="Descripción para cocina (ej.: Tortilla de maíz, carne de res, guacamole, cebolla y limón)" aria-label="Descripción">
       </div>`;
     }).join("") || `<p class="empty">Sin productos.</p>`}</div>
     <button class="btn btn-ghost" data-action="prod-add" data-cat="${esc(cat.id)}">➕ Nuevo producto en ${esc(cat.name)}</button>
@@ -382,6 +384,7 @@ function onInput(e) {
   if (t.dataset.ws) { work.settings[t.dataset.ws] = t.value; markDirty(); }
   else if (t.dataset.staff) { work.settings[t.dataset.staff][+t.dataset.i].name = t.value; markDirty(); }
   else if (t.dataset.prod === "name") { work.catalog.products[+t.dataset.i].name = t.value; markDirty(); }
+  else if (t.dataset.prod === "description") { work.catalog.products[+t.dataset.i].description = t.value.slice(0, 300); markDirty(); }
   else if (t.dataset.prod === "referencePrice") {
     const n = parseFloat(t.value);
     work.catalog.products[+t.dataset.i].referencePrice = isFinite(n) ? Math.round(n * 100) / 100 : null;
