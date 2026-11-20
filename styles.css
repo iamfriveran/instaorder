@@ -265,6 +265,7 @@ body[data-screen="mesero"] #app { padding-bottom: calc(86px + var(--safe-b)); }
 .line-row { display: flex; align-items: center; gap: 10px; }
 .line-qty { font-family: var(--display); font-weight: 800; font-size: 1.4rem; color: var(--magenta); min-width: 44px; }
 .line-name { flex: 1; font-weight: 800; font-size: 1.05rem; }
+.line-desc { font-weight: 600; font-size: .85rem; color: var(--purple); margin-top: 2px; }
 .line-note { font-weight: 700; font-size: .88rem; color: #8c004c; background: var(--magenta-50); border-radius: 8px; padding: 3px 8px; margin-top: 4px; display: inline-block; }
 .line-ctl { display: flex; gap: 6px; }
 .line-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0 54px; }
@@ -335,7 +336,7 @@ body[data-screen="cocina"] { background: #160d29; }
 .k-head { display: flex; gap: 12px; align-items: stretch; padding: 12px; position: relative; }
 .k-table { background: var(--purple); color: #fff; border-radius: 14px; min-width: 92px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--display); font-size: 2.8rem; font-weight: 800; line-height: .95; padding: 6px 8px; }
 .k-table small { font-family: var(--font); font-size: .7rem; letter-spacing: .16em; font-weight: 800; opacity: .85; }
-.k-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.k-info { padding-top: 16px; flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
 .k-num { font-weight: 900; font-size: 1.1rem; color: var(--purple); }
 .k-meta { font-size: .92rem; color: var(--ink); }
 .k-badge { position: absolute; top: 10px; right: 10px; font-size: .68rem; font-weight: 900; letter-spacing: .08em; padding: 3px 9px; border-radius: 999px; }
@@ -349,6 +350,7 @@ body[data-screen="cocina"] { background: #160d29; }
 .k-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .k-item-name { font-size: 1.12rem; font-weight: 700; letter-spacing: .01em; }
 .k-item-name b { color: var(--magenta); font-family: var(--display); font-size: 1.3rem; }
+.k-desc { margin-top: 2px; font-size: .98rem; font-weight: 700; color: var(--purple); background: var(--purple-50); border-radius: 8px; padding: 3px 10px; display: inline-block; }
 .k-note { margin-top: 3px; display: inline-block; background: var(--yellow); color: var(--purple-900); font-weight: 900; font-size: 1rem; padding: 3px 10px; border-radius: 8px; text-transform: uppercase; }
 .k-item.done .k-item-name { text-decoration: line-through; opacity: .5; }
 .k-check { width: 40px; height: 40px; flex: none; border-radius: 10px; border: 3px solid var(--line); background: #fff; color: #fff; font-size: 1.3rem; font-weight: 900; }

@@ -339,6 +339,10 @@ function mountSummary(table) {
   renderLines();
 }
 
+function lineDesc(it) {
+  return state.catalog.products.find((p) => p.id === it.productId)?.description || "";
+}
+
 function renderLines() {
   const el = $("#sum-lines", root);
   if (!el) return;
@@ -349,6 +353,7 @@ function renderLines() {
       <div class="line-row">
         <div class="line-qty">${it.quantity} ×</div>
         <div class="line-name">${esc(it.productName)}
+          ${lineDesc(it) ? `<div class="line-desc">${esc(lineDesc(it))}</div>` : ""}
           ${it.notes ? `<div class="line-note">📝 ${esc(it.notes)}</div>` : ""}</div>
         <div class="line-ctl">
           <button class="qbtn sm" data-action="ldec" data-i="${i}" aria-label="Quitar uno">−</button>

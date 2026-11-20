@@ -33,6 +33,11 @@ const cookBy = () => getCook() || { id: "", name: "Cocina" };
 /* Tarjeta de orden                                                    */
 /* ------------------------------------------------------------------ */
 
+/** Contenido de promociones/combos: se toma del catálogo por productId. */
+function productDesc(it) {
+  return it.description || state.catalog.products.find((p) => p.id === it.productId)?.description || "";
+}
+
 function itemsHtml(o, interactive) {
   return `<ul class="k-items">${o.items.map((it, i) => `
     <li class="k-item ${interactive && it.prepared ? "done" : ""}">
@@ -40,6 +45,7 @@ function itemsHtml(o, interactive) {
         aria-label="Marcar preparado" aria-pressed="${it.prepared ? "true" : "false"}">${it.prepared ? "✓" : ""}</button>` : ""}
       <div class="k-item-body">
         <div class="k-item-name"><b>${it.quantity} ×</b> ${esc(it.productName.toUpperCase())}</div>
+        ${productDesc(it) ? `<div class="k-desc">${esc(productDesc(it))}</div>` : ""}
         ${it.notes ? `<div class="k-note">➤ ${esc(it.notes)}</div>` : ""}
       </div>
     </li>`).join("")}</ul>
