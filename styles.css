@@ -501,3 +501,20 @@ body[data-screen="historial"] { background: var(--cream); }
   .kds { grid-template-columns: 3fr 2fr; }
 }
 .home .conn-pill .conn-text { display: inline !important; } .home .conn-pill { padding: 6px 12px !important; }
+
+/* Bebidas que sirve el mesero (no van a cocina) ------------------------- */
+.group-head { margin: 14px 0 2px; padding: 6px 10px; border-radius: 10px; font-size: .78rem; font-weight: 900; letter-spacing: .06em; }
+.group-kitchen { background: var(--purple-50); color: var(--purple); }
+.group-drinks { background: #e3f4fb; color: #0b6283; }
+.line-drink .line-qty { color: #0b84b0; }
+.t-drinks { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); font-size: .62rem; font-weight: 800; background: #e3f4fb; color: #0b6283; padding: 1px 6px; border-radius: 99px; white-space: nowrap; }
+.table-card .t-state { margin-bottom: 6px; }
+.mo-card.st-drinks { border-left-color: #0b84b0; }
+.status-chip.st-drinks { background: #0b84b0; }
+.sent-drinks { background: #e3f4fb; border: 2px dashed #0b84b0; border-radius: 18px; padding: 14px 16px; color: #0b4a63; }
+.sent-drinks h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.sent-drinks p { margin: 4px 0; }
+.station-btn { border: 0; border-radius: 10px; min-height: 40px; padding: 0 10px; font-weight: 800; font-size: .8rem; }
+.station-btn.st-k { background: var(--purple-50); color: var(--purple); }
+.station-btn.st-w { background: #e3f4fb; color: #0b6283; }
+.p-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

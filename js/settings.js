@@ -170,10 +170,12 @@ function catalogTab() {
   const prods = c.products.filter((p) => p.categoryId === cat?.id);
   return `<section class="s-card">
     <h3>Categorías</h3>
+    <p class="muted small">🍳 Cocina = los productos se envían a la pantalla de cocina. 🥤 Mesero = bebidas que sirve el mesero; NO se envían a cocina.</p>
     <div class="cat-admin">${c.categories.map((k, i) => `<div class="cat-row ${k.active === false ? "off" : ""} ${k.id === cat?.id ? "sel" : ""}">
       <button class="cat-pick" data-action="cat-pick" data-id="${esc(k.id)}">${esc(k.icon || "🍴")} ${esc(k.name)} <small>(${c.products.filter((p) => p.categoryId === k.id).length})</small></button>
       <button class="icon-btn" data-action="cat-up" data-i="${i}" aria-label="Subir">↑</button>
       <button class="icon-btn" data-action="cat-edit" data-i="${i}" aria-label="Editar">✏️</button>
+      <button class="station-btn ${k.station === "waiter" ? "st-w" : "st-k"}" data-action="cat-station" data-i="${i}" title="¿A dónde va esta categoría?">${k.station === "waiter" ? "🥤 Mesero" : "🍳 Cocina"}</button>
       <label class="mini-toggle"><input type="checkbox" data-cat-active="${i}" ${k.active !== false ? "checked" : ""}> Activa</label>
     </div>`).join("")}</div>
     <button class="btn btn-ghost" data-action="cat-add">➕ Nueva categoría</button>
@@ -311,6 +313,7 @@ async function onClick(e) {
       break;
     }
     case "cat-pick": work.catFilter = b.dataset.id; render(); break;
+    case "cat-station": { const k = work.catalog.categories[i]; k.station = k.station === "waiter" ? "kitchen" : "waiter"; markDirty(); render(); break; }
     case "cat-up": if (i > 0) { const arr = work.catalog.categories; [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; markDirty(); render(); } break;
     case "cat-edit": {
       const k = work.catalog.categories[i];

@@ -104,3 +104,21 @@ export function removeOutbox(orderId) {
 /* ---------- Sesión de configuración (PIN) ---------- */
 export const pinUnlocked = () => sessionStorage.getItem(K.pin) === "1";
 export const setPinUnlocked = (v) => sessionStorage.setItem(K.pin, v ? "1" : "0");
+
+/* ---------- Bebidas por servir (se quedan con el mesero) ----------
+ * Las bebidas, micheladas, cantaritos y cócteles NO se envían a cocina.
+ * Se guardan sólo en este teléfono como recordatorio para el mesero.
+ */
+const DRINKS_KEY = "instaorder.drinks";
+
+export function getDrinks() { return read(DRINKS_KEY, []); }
+
+export function addDrinks(entry) {
+  const all = getDrinks();
+  all.push({ id: "BEB-" + randomId(6), createdAt: Date.now(), ...entry });
+  write(DRINKS_KEY, all);
+}
+
+export function removeDrinks(id) {
+  write(DRINKS_KEY, getDrinks().filter((d) => d.id !== id));
+}

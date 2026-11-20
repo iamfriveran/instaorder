@@ -22,6 +22,7 @@ import { appHeader, demoNotice } from "./components.js";
 import { submitOrder, outboxEntries, processOutbox } from "./outbox.js";
 import {
   getWaiter, setWaiter, getDraft, saveDraft, clearDraft, getDrafts, deviceId, getPrefs, getLastMode,
+  getDrinks, addDrinks, removeDrinks,
 } from "./store.js";
 import { playAlert, vibrate } from "./sound.js";
 import {
@@ -44,6 +45,25 @@ const ORDER_STATUS = {
   ACCEPTED: { label: "En preparación", cls: "st-preparing" },
   COMPLETED: { label: "Lista para servir", cls: "st-ready" },
 };
+
+/* ------------------------------------------------------------------ */
+/* Bebidas: se quedan con el mesero (no van a cocina)                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * true si el producto pertenece a una categoría marcada para el mesero
+ * (station = "waiter": Bebidas, Cantaritos, Micheladas, Cócteles).
+ * Se configura en Configuración › Catálogo.
+ */
+export function isDrink(item) {
+  const prod = state.catalog.products.find((p) => p.id === item.productId);
+  const cat = prod ? categoryById(prod.categoryId) : state.catalog.categories.find((c) => c.name === item.category);
+  return cat?.station === "waiter";
+}
+
+function itemsText(items) {
+  return items.map((i) => `${i.quantity}× ${esc(i.productName)}${i.notes ? ` <em>(${esc(i.notes)})</em>` : ""}`).join(" · ");
+}
 
 /* ------------------------------------------------------------------ */
 /* Estado de las mesas                                                 */
@@ -115,7 +135,7 @@ function waiterHeader(back) {
 }
 
 function bottomNav(active) {
-  const pend = state.activeOrders.filter((o) => o.waiterId === getWaiter()?.id).length + outboxEntries().length;
+  const pend = state.activeOrders.filter((o) => o.waiterId === getWaiter()?.id).length + outboxEntries().length + getDrinks().length;
   return `<nav class="bottom-nav">
     <button class="${active === "tables" ? "on" : ""}" data-action="nav-tables"><span>🍽️</span>Mesas</button>
     <button class="${active === "orders" ? "on" : ""}" data-action="nav-orders"><span>🧾</span>Mis pedidos${pend ? `<i class="badge">${pend}</i>` : ""}</button>
@@ -170,6 +190,8 @@ function renderTables() {
   const g = $("#table-grid", root);
   if (!g) return;
   let html = "";
+  const drinksByTable = {};
+  for (const d of getDrinks()) drinksByTable[d.table] = (drinksByTable[d.table] || 0) + d.items.reduce((a, i) => a + i.quantity, 0);
   for (let n = 1; n <= state.settings.tableCount; n++) {
     const st = tableStatus(n);
     const s = TABLE_STATES[st.key];
@@ -179,6 +201,7 @@ function renderTables() {
       <span class="t-num">${tableLabel(n)}</span>
       <span class="t-state">${s.label}</span>
       ${count > 1 ? `<span class="t-count">${count} órdenes</span>` : ""}
+      ${drinksByTable[n] ? `<span class="t-drinks" title="Bebidas por servir">🥤 ${drinksByTable[n]}</span>` : ""}
     </button>`;
   }
   setHtml(g, html);
@@ -252,7 +275,9 @@ function renderProducts() {
   const d = draftFor(ui.table);
   const q = normalize(ui.search.trim());
   let prods = state.catalog.products.filter((p) => p.active !== false && categoryById(p.categoryId)?.active !== false);
-  prods = q ? prods.filter((p) => normalize(p.name + " " + (p.description || "")).includes(q))
+  // Búsqueda por palabras: "taco res" encuentra "Taco Carne de Res".
+  const words = q.split(/\s+/).filter((x) => x && !["de", "con", "al", "la", "el"].includes(x));
+  prods = q ? prods.filter((p) => { const t = normalize(p.name + " " + (p.description || "")); return words.every((x) => t.includes(x)); })
     : prods.filter((p) => p.categoryId === ui.category);
   if (!prods.length) { el.innerHTML = `<p class="empty">No se encontraron productos.</p>`; return; }
   el.innerHTML = prods.map((p) => {
@@ -348,8 +373,8 @@ function renderLines() {
   if (!el) return;
   const d = draftFor(ui.table);
   if (!d.items.length) { el.innerHTML = `<p class="empty">Sin productos${d.correctionOf ? " (corrección sólo con nota)" : ""}.</p>`; return; }
-  el.innerHTML = d.items.map((it, i) => `
-    <div class="line">
+  const lineHtml = (it, i) => `
+    <div class="line ${isDrink(it) ? "line-drink" : ""}">
       <div class="line-row">
         <div class="line-qty">${it.quantity} ×</div>
         <div class="line-name">${esc(it.productName)}
@@ -370,7 +395,12 @@ function renderLines() {
         <input class="field" data-input="lnote" data-i="${i}" value="${esc(it.notes)}" placeholder="Nota para cocina…">
         <button class="btn btn-sm btn-primary" data-action="lnote-done">Listo</button>
       </div>` : ""}
-    </div>`).join("");
+    </div>`;
+  const food = d.items.map((it, i) => [it, i]).filter(([it]) => !isDrink(it));
+  const drinks = d.items.map((it, i) => [it, i]).filter(([it]) => isDrink(it));
+  el.innerHTML =
+    (food.length ? `<div class="group-head group-kitchen">🍳 VA A COCINA</div>` + food.map(([it, i]) => lineHtml(it, i)).join("") : "")
+    + (drinks.length ? `<div class="group-head group-drinks">🥤 BEBIDAS — NO VAN A COCINA · las sirves tú</div>` + drinks.map(([it, i]) => lineHtml(it, i)).join("") : "");
 }
 
 function editLine(i, fn) {
@@ -390,18 +420,36 @@ async function sendDraft(btn) {
   sending = true;
   btn.disabled = true;
   try {
-    const count = d.items.reduce((n, i) => n + i.quantity, 0);
+    const food = d.items.filter((i) => !isDrink(i));
+    const drinks = d.items.filter((i) => isDrink(i));
+    const nFood = food.reduce((n, i) => n + i.quantity, 0);
+    const nDrinks = drinks.reduce((n, i) => n + i.quantity, 0);
+    const toKitchen = food.length > 0 || !!d.correctionOf;
     const ok = await confirmDialog(
-      `¿Enviar a cocina la Mesa ${tableLabel(table)}?`,
-      `${count} artículo(s)${d.generalNotes ? "\nCon nota general" : ""}${d.correctionOf ? "\nEs una CORRECCIÓN" : ""}\n\nUna vez enviada, la orden no se puede modificar (sólo con una corrección).`,
-      "Sí, ENVIAR", "primary");
+      toKitchen ? `¿Enviar a cocina la Mesa ${tableLabel(table)}?` : `Mesa ${tableLabel(table)}: sólo bebidas`,
+      (toKitchen ? `🍳 ${nFood} artículo(s) a cocina` : "No se envía nada a cocina.")
+        + (nDrinks ? `\n🥤 ${nDrinks} bebida(s) para ti (no van a cocina)` : "")
+        + (d.generalNotes && toKitchen ? "\nCon nota general" : "") + (d.correctionOf ? "\nEs una CORRECCIÓN" : "")
+        + (toKitchen ? "\n\nUna vez enviada, la orden no se puede modificar (sólo con una corrección)." : ""),
+      toKitchen ? "Sí, ENVIAR" : "Guardar bebidas", "primary");
     if (!ok) return;
     const waiter = getWaiter();
+    if (drinks.length) {
+      addDrinks({
+        table, waiterId: waiter.id, waiterName: waiter.name,
+        items: drinks.map((i) => ({ productId: i.productId, productName: i.productName, quantity: i.quantity, notes: i.notes || "" })),
+      });
+    }
+    ui.lastDrinks = drinks.length ? { table, items: drinks } : null;
+    if (!toKitchen) {
+      clearDraft(table);
+      go(`mesero/enviado/bebidas`, { replace: true });
+      return;
+    }
     const order = dataService.buildOrder({
-      tableNumber: table, waiter, items: d.items, generalNotes: d.generalNotes,
+      tableNumber: table, waiter, items: food, generalNotes: d.generalNotes,
       deviceId: deviceId(), correctionOf: d.correctionOf || null,
     });
-    // El borrador pasa a la bandeja de salida (mismo ID en cada reintento).
     // submitOrder guarda la orden en la bandeja de forma síncrona antes de
     // navegar, así la pantalla de resultado nunca la muestra como enviada
     // hasta que el servidor confirme.
@@ -428,6 +476,15 @@ function renderSent() {
   const el = $("#sent-box", root);
   if (!el) return;
   const id = ui.sentId;
+  const drinksHtml = ui.lastDrinks ? `<div class="sent-drinks">
+      <h3>🥤 Bebidas para servir tú · Mesa ${tableLabel(ui.lastDrinks.table)}</h3>
+      <p>${itemsText(ui.lastDrinks.items)}</p>
+      <p class="muted small">No se enviaron a cocina. Quedan en "Mis pedidos" hasta que las marques como servidas.</p></div>` : "";
+  if (id === "bebidas") {
+    el.innerHTML = drinksHtml + `<button class="btn btn-primary btn-xl" data-action="nav-tables">🍽️ Volver a mesas</button>
+      <button class="btn btn-ghost btn-lg" data-action="nav-orders">🧾 Ver mis pedidos</button>`;
+    return;
+  }
   const q = outboxEntries().find((e) => e.order.orderId === id);
   const live = state.activeOrders.find((o) => o.orderId === id);
   let html;
@@ -450,7 +507,7 @@ function renderSent() {
       <p>Mesa ${live ? tableLabel(live.tableNumber) : ""} · confirmada por el servidor</p>
     </div>`;
   }
-  el.innerHTML = html + `<button class="btn btn-primary btn-xl" data-action="nav-tables">🍽️ Volver a mesas</button>
+  el.innerHTML = html + drinksHtml + `<button class="btn btn-primary btn-xl" data-action="nav-tables">🍽️ Volver a mesas</button>
     <button class="btn btn-ghost btn-lg" data-action="nav-orders">🧾 Ver mis pedidos</button>`;
 }
 
@@ -472,6 +529,14 @@ function renderMyOrders() {
   const mine = state.activeOrders.filter((o) => o.waiterId === w.id).sort((a, b) => (b.sentAt || 0) - (a.sentAt || 0));
   const drafts = Object.entries(getDrafts()).filter(([, d]) => d.items?.length || d.correctionOf);
   let html = "";
+  const drinkList = getDrinks().slice().sort((a, b) => a.createdAt - b.createdAt);
+  if (drinkList.length) html += `<h3 class="sec">🥤 Bebidas por servir (no van a cocina)</h3>` + drinkList.map((dr) => `
+    <div class="mo-card st-drinks">
+      <div class="mo-top"><b>MESA ${tableLabel(dr.table)}</b><span class="status-chip st-drinks">Por servir</span></div>
+      <div class="mo-items">${itemsText(dr.items)}</div>
+      <div class="mo-meta">Pedidas ${fmtTime(dr.createdAt)} · hace <span data-since="${dr.createdAt}"></span>${dr.waiterName ? ` · ${esc(dr.waiterName)}` : ""}</div>
+      <button class="btn btn-sm btn-success" data-action="drinks-served" data-id="${esc(dr.id)}">✅ Servidas</button>
+    </div>`).join("");
   if (queued.length) html += `<h3 class="sec">⏳ Sin enviar (este teléfono)</h3>` + queued.map((e) => `
     <div class="mo-card st-pending">
       <div class="mo-top"><b>MESA ${tableLabel(e.order.tableNumber)}</b><span class="status-chip st-pending">${e.state === "FAILED" ? "Error" : e.state === "SENDING" ? "Enviando…" : "NO ENVIADA"}</span></div>
@@ -572,6 +637,7 @@ async function onClick(e) {
     case "send": sendDraft(b); break;
     case "retry": processOutbox(); break;
     case "correct": startCorrection(b.dataset.id); break;
+    case "drinks-served": removeDrinks(b.dataset.id); toast("Bebidas marcadas como servidas", "success"); renderMyOrders(); break;
   }
 }
 

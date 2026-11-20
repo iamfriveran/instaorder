@@ -5,6 +5,10 @@
  * Se usa como catálogo inicial. Una vez que se edita el catálogo desde
  * Configuración > Catálogo, la versión guardada en Firebase tiene prioridad.
  *
+ * Descripciones: Menu_Takolandia_Descripciones.xlsx (20-nov-2026).
+ * station: "kitchen" = va a cocina · "waiter" = bebida que sirve el mesero
+ *          (no se envía a cocina).
+ *
  * IMPORTANTE: referencePrice es SOLO REFERENCIAL para identificar el producto.
  * La aplicación nunca suma, multiplica ni totaliza precios.
  */
@@ -17,98 +21,112 @@ export const DEFAULT_CATALOG = {
       "name": "Tacos",
       "icon": "🌮",
       "order": 1,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     },
     {
       "id": "quesadillas",
       "name": "Quesadillas",
       "icon": "🧀",
       "order": 2,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     },
     {
       "id": "burritos",
       "name": "Burritos",
       "icon": "🌯",
       "order": 3,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     },
     {
       "id": "nachos",
       "name": "Nachos",
       "icon": "🥙",
       "order": 4,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     },
     {
       "id": "fajitas",
       "name": "Fajitas",
       "icon": "🫑",
       "order": 5,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     },
     {
       "id": "doritos",
       "name": "Doritos",
       "icon": "🔺",
       "order": 6,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     },
     {
       "id": "flautas",
       "name": "Flautas",
       "icon": "🥖",
       "order": 7,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     },
     {
       "id": "bandejas",
       "name": "Bandejas",
       "icon": "🍽️",
       "order": 8,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     },
     {
       "id": "extras",
       "name": "Extras",
       "icon": "➕",
       "order": 9,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     },
     {
       "id": "bebidas",
       "name": "Bebidas",
       "icon": "🥤",
       "order": 10,
-      "active": true
+      "active": true,
+      "station": "waiter"
     },
     {
       "id": "cantaritos",
       "name": "Cantaritos",
       "icon": "🏺",
       "order": 11,
-      "active": true
+      "active": true,
+      "station": "waiter"
     },
     {
       "id": "micheladas",
       "name": "Micheladas",
       "icon": "🍺",
       "order": 12,
-      "active": true
+      "active": true,
+      "station": "waiter"
     },
     {
       "id": "cocteles",
       "name": "Cócteles",
       "icon": "🍹",
       "order": 13,
-      "active": true
+      "active": true,
+      "station": "waiter"
     },
     {
       "id": "promociones",
       "name": "Promociones",
       "icon": "⭐",
       "order": 14,
-      "active": true
+      "active": true,
+      "station": "kitchen"
     }
   ],
   "products": [
@@ -118,7 +136,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "tacos",
       "referencePrice": 2.5,
       "active": true,
-      "order": 1
+      "order": 1,
+      "description": "Tortilla de maíz, carne de res, guacamole, cebolla y limón."
     },
     {
       "id": "p-taco-pollo",
@@ -126,7 +145,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "tacos",
       "referencePrice": 2.5,
       "active": true,
-      "order": 2
+      "order": 2,
+      "description": "Tortilla de maíz, pechuga de pollo, guacamole, cebolla y limón."
     },
     {
       "id": "p-taco-al-pastor",
@@ -134,7 +154,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "tacos",
       "referencePrice": 2.5,
       "active": true,
-      "order": 3
+      "order": 3,
+      "description": "Tortilla de maíz, carne de cerdo, piña, guacamole, cebolla y limón."
     },
     {
       "id": "p-taco-birria",
@@ -142,7 +163,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "tacos",
       "referencePrice": 2.75,
       "active": true,
-      "order": 4
+      "order": 4,
+      "description": "Tortilla de maíz, carne de res desmechada en salsa picante, guacamole y cebolla."
     },
     {
       "id": "p-taco-campechano",
@@ -150,7 +172,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "tacos",
       "referencePrice": 2.5,
       "active": true,
-      "order": 5
+      "order": 5,
+      "description": "Tortilla de maíz, carne de res, chorizo, guacamole, cebolla y limón."
     },
     {
       "id": "p-taco-full",
@@ -158,7 +181,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "tacos",
       "referencePrice": 3,
       "active": true,
-      "order": 6
+      "order": 6,
+      "description": "Todas las carnes: res, cerdo, pollo, chorizo, guacamole, cebolla y limón."
     },
     {
       "id": "p-quesadilla-queso",
@@ -166,7 +190,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "quesadillas",
       "referencePrice": 2.75,
       "active": true,
-      "order": 7
+      "order": 7,
+      "description": "Tortilla de trigo, queso, guacamole, pico de gallo."
     },
     {
       "id": "p-quesadilla-res",
@@ -174,7 +199,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "quesadillas",
       "referencePrice": 3.75,
       "active": true,
-      "order": 8
+      "order": 8,
+      "description": "Tortilla de trigo, queso, carne de res, guacamole, pico de gallo."
     },
     {
       "id": "p-quesadilla-pollo",
@@ -182,7 +208,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "quesadillas",
       "referencePrice": 3.75,
       "active": true,
-      "order": 9
+      "order": 9,
+      "description": "Tortilla de trigo, queso, pechuga de pollo, guacamole, pico de gallo."
     },
     {
       "id": "p-quesadilla-pastor",
@@ -190,7 +217,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "quesadillas",
       "referencePrice": 3.75,
       "active": true,
-      "order": 10
+      "order": 10,
+      "description": "Tortilla de trigo, queso, carne de cerdo, piña, guacamole, pico de gallo."
     },
     {
       "id": "p-quesadilla-campechano",
@@ -198,7 +226,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "quesadillas",
       "referencePrice": 3.75,
       "active": true,
-      "order": 11
+      "order": 11,
+      "description": "Tortilla de trigo, queso, carne de res, chorizo, guacamole, pico de gallo."
     },
     {
       "id": "p-quesadilla-full",
@@ -206,7 +235,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "quesadillas",
       "referencePrice": 4,
       "active": true,
-      "order": 12
+      "order": 12,
+      "description": "Tortilla de trigo, queso, todas las carnes, chorizo, guacamole, pico de gallo."
     },
     {
       "id": "p-quesadilla-birria",
@@ -214,7 +244,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "quesadillas",
       "referencePrice": 4.75,
       "active": true,
-      "order": 13
+      "order": 13,
+      "description": "Tortilla de trigo, queso, carne de res desmechada, guacamole, pico de gallo."
     },
     {
       "id": "p-burrito-clasico-res",
@@ -222,7 +253,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 14
+      "order": 14,
+      "description": "Tortilla de maíz, frejol, res. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria."
     },
     {
       "id": "p-burrito-clasico-pollo",
@@ -230,7 +262,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 15
+      "order": 15,
+      "description": "Tortilla de maíz, frejol, pollo. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria."
     },
     {
       "id": "p-burrito-clasico-pastor",
@@ -238,7 +271,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 16
+      "order": 16,
+      "description": "Tortilla de maíz, frejol, cerdo, piña. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria."
     },
     {
       "id": "p-burrito-gratinado-res",
@@ -246,7 +280,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 4.5,
       "active": true,
-      "order": 17
+      "order": 17,
+      "description": "Frejol, res, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria."
     },
     {
       "id": "p-burrito-gratinado-pollo",
@@ -254,7 +289,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 4.5,
       "active": true,
-      "order": 18
+      "order": 18,
+      "description": "Frejol, pollo, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria."
     },
     {
       "id": "p-burrito-gratinado-pastor",
@@ -262,7 +298,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 4.5,
       "active": true,
-      "order": 19
+      "order": 19,
+      "description": "Frejol, cerdo, piña, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria."
     },
     {
       "id": "p-burrito-birria",
@@ -270,7 +307,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 4.75,
       "active": true,
-      "order": 20
+      "order": 20,
+      "description": "Frejol, guacamole, pico de gallo, carne de res desmechada, salsa cheddar y salsa agria."
     },
     {
       "id": "p-chimichanga-res",
@@ -278,7 +316,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 4.25,
       "active": true,
-      "order": 21
+      "order": 21,
+      "description": "Tortilla de maíz frita con frejol, res. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria."
     },
     {
       "id": "p-chimichanga-pollo",
@@ -286,7 +325,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 4.25,
       "active": true,
-      "order": 22
+      "order": 22,
+      "description": "Tortilla de maíz frita con frejol, pollo. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria."
     },
     {
       "id": "p-chimichanga-cerdo",
@@ -294,7 +334,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "burritos",
       "referencePrice": 4.25,
       "active": true,
-      "order": 23
+      "order": 23,
+      "description": "Tortilla de maíz frita con frejol, cerdo. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria."
     },
     {
       "id": "p-nachos-queso",
@@ -302,7 +343,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "nachos",
       "referencePrice": 2.5,
       "active": true,
-      "order": 24
+      "order": 24,
+      "description": "Nachos y queso."
     },
     {
       "id": "p-nachos-pastor",
@@ -310,7 +352,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "nachos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 25
+      "order": 25,
+      "description": "Nachos, queso, cerdo, piña, guacamole y pico de gallo."
     },
     {
       "id": "p-nachos-pollo",
@@ -318,7 +361,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "nachos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 26
+      "order": 26,
+      "description": "Nachos, queso, pollo, guacamole y pico de gallo."
     },
     {
       "id": "p-nachos-carne-de-res",
@@ -326,7 +370,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "nachos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 27
+      "order": 27,
+      "description": "Nachos, queso, res, guacamole y pico de gallo."
     },
     {
       "id": "p-nachos-campechano",
@@ -334,7 +379,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "nachos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 28
+      "order": 28,
+      "description": "Nachos, queso, res, chorizo, guacamole y pico de gallo."
     },
     {
       "id": "p-nachos-full",
@@ -342,7 +388,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "nachos",
       "referencePrice": 4.5,
       "active": true,
-      "order": 29
+      "order": 29,
+      "description": "Nachos, queso, todas las carnes, chorizo, guacamole y pico de gallo."
     },
     {
       "id": "p-nachos-chilli-beans",
@@ -350,7 +397,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "nachos",
       "referencePrice": 5.5,
       "active": true,
-      "order": 30
+      "order": 30,
+      "description": "Nachos, frejol, res, queso, guacamole, pico de gallo y jalapeño."
     },
     {
       "id": "p-nachos-bell-grande",
@@ -358,7 +406,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "nachos",
       "referencePrice": 5.75,
       "active": true,
-      "order": 31
+      "order": 31,
+      "description": "Nachos, frejol, todas las carnes, queso, guacamole, pico de gallo y jalapeño."
     },
     {
       "id": "p-taco-bowl",
@@ -366,7 +415,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "nachos",
       "referencePrice": 4.5,
       "active": true,
-      "order": 32
+      "order": 32,
+      "description": "Nachos, frejol, todas las carnes, queso, guacamole, salsa agria."
     },
     {
       "id": "p-fajita-pollo",
@@ -374,7 +424,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "fajitas",
       "referencePrice": 9,
       "active": true,
-      "order": 33
+      "order": 33,
+      "description": "Salteado de verduras, fajitas de pollo a la plancha, guacamole y frejol. Incluye arroz o tortillas."
     },
     {
       "id": "p-fajita-carne-de-res",
@@ -382,7 +433,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "fajitas",
       "referencePrice": 9.5,
       "active": true,
-      "order": 34
+      "order": 34,
+      "description": "Salteado de verduras, fajitas de res a la plancha, guacamole y frejol. Incluye arroz o tortillas."
     },
     {
       "id": "p-fajita-trio",
@@ -390,7 +442,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "fajitas",
       "referencePrice": 13,
       "active": true,
-      "order": 35
+      "order": 35,
+      "description": "Salteado de verduras, fajitas de res y pollo a la plancha, camarones, guacamole y frejol. Incluye arroz o tortillas."
     },
     {
       "id": "p-doritos-limon-res",
@@ -398,7 +451,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "doritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 36
+      "order": 36,
+      "description": "Doritos de limón, res y queso."
     },
     {
       "id": "p-doritos-limon-cerdo",
@@ -406,7 +460,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "doritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 37
+      "order": 37,
+      "description": "Doritos de limón, cerdo y queso."
     },
     {
       "id": "p-doritos-limon-pollo",
@@ -414,7 +469,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "doritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 38
+      "order": 38,
+      "description": "Doritos de limón, pollo y queso."
     },
     {
       "id": "p-doritos-hot-res",
@@ -422,7 +478,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "doritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 39
+      "order": 39,
+      "description": "Doritos picantes, res y queso."
     },
     {
       "id": "p-doritos-hot-pollo",
@@ -430,7 +487,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "doritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 40
+      "order": 40,
+      "description": "Doritos picantes, pollo y queso."
     },
     {
       "id": "p-doritos-hot-cerdo",
@@ -438,7 +496,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "doritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 41
+      "order": 41,
+      "description": "Doritos picantes, cerdo y queso."
     },
     {
       "id": "p-doritos-normal-res",
@@ -446,7 +505,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "doritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 42
+      "order": 42,
+      "description": "Doritos sabor natural, res y queso."
     },
     {
       "id": "p-doritos-normal-pollo",
@@ -454,7 +514,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "doritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 43
+      "order": 43,
+      "description": "Doritos sabor natural, pollo y queso."
     },
     {
       "id": "p-doritos-normal-cerdo",
@@ -462,7 +523,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "doritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 44
+      "order": 44,
+      "description": "Doritos sabor natural, cerdo y queso."
     },
     {
       "id": "p-flauta-de-res",
@@ -470,7 +532,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "flautas",
       "referencePrice": 5.5,
       "active": true,
-      "order": 45
+      "order": 45,
+      "description": "Tortilla frita de maíz con queso, res, lechuga, pico de gallo y guacamole."
     },
     {
       "id": "p-flauta-de-pollo",
@@ -478,7 +541,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "flautas",
       "referencePrice": 5.5,
       "active": true,
-      "order": 46
+      "order": 46,
+      "description": "Tortilla frita de maíz con queso, pollo, lechuga, pico de gallo y guacamole."
     },
     {
       "id": "p-flauta-de-queso",
@@ -486,7 +550,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "flautas",
       "referencePrice": 4.75,
       "active": true,
-      "order": 47
+      "order": 47,
+      "description": "Tortilla frita de maíz con queso, lechuga, pico de gallo y guacamole."
     },
     {
       "id": "p-bandeja-carnal",
@@ -494,7 +559,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bandejas",
       "referencePrice": 14,
       "active": true,
-      "order": 48
+      "order": 48,
+      "description": "Tres tacos, dos quesadillas, proteína a elección (res, pollo o cerdo), una (1) bebida."
     },
     {
       "id": "p-bandejalandia",
@@ -502,7 +568,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bandejas",
       "referencePrice": 10,
       "active": true,
-      "order": 49
+      "order": 49,
+      "description": "Tres tacos, un burrito clásico, proteína a elección (res, pollo o cerdo), una (1) bebida."
     },
     {
       "id": "p-extra-guacamole",
@@ -510,7 +577,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "extras",
       "referencePrice": 1.5,
       "active": true,
-      "order": 50
+      "order": 50,
+      "description": "Porción adicional de guacamole."
     },
     {
       "id": "p-extra-nachos",
@@ -518,7 +586,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "extras",
       "referencePrice": 2,
       "active": true,
-      "order": 51
+      "order": 51,
+      "description": "Porción adicional de nachos."
     },
     {
       "id": "p-extra-de-frejol",
@@ -526,7 +595,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "extras",
       "referencePrice": 2,
       "active": true,
-      "order": 52
+      "order": 52,
+      "description": "Porción adicional de frejol negro."
     },
     {
       "id": "p-extra-de-queso",
@@ -534,7 +604,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "extras",
       "referencePrice": 2,
       "active": true,
-      "order": 53
+      "order": 53,
+      "description": "60g de queso mozzarella rallado."
     },
     {
       "id": "p-agua-de-jamaica",
@@ -542,7 +613,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 1.25,
       "active": true,
-      "order": 54
+      "order": 54,
+      "description": "Agua fresca de flor de Jamaica."
     },
     {
       "id": "p-horchata",
@@ -550,7 +622,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 1.25,
       "active": true,
-      "order": 55
+      "order": 55,
+      "description": "Bebida de arroz con canela."
     },
     {
       "id": "p-agua-natural",
@@ -558,7 +631,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 1,
       "active": true,
-      "order": 56
+      "order": 56,
+      "description": "Agua sin gas, 300ml."
     },
     {
       "id": "p-agua-con-gas",
@@ -566,7 +640,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 1,
       "active": true,
-      "order": 57
+      "order": 57,
+      "description": "Agua con gas, 300ml."
     },
     {
       "id": "p-fuze-tea",
@@ -574,7 +649,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 1.75,
       "active": true,
-      "order": 58
+      "order": 58,
+      "description": "Té helado Fuze Tea."
     },
     {
       "id": "p-soda-coca-cola",
@@ -582,7 +658,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 1.25,
       "active": true,
-      "order": 59
+      "order": 59,
+      "description": "Coca-Cola 300ml."
     },
     {
       "id": "p-soda-1-litro",
@@ -590,7 +667,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 2.5,
       "active": true,
-      "order": 60
+      "order": 60,
+      "description": "Gaseosa 1 litro."
     },
     {
       "id": "p-limonada-imperial",
@@ -598,7 +676,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 2.5,
       "active": true,
-      "order": 61
+      "order": 61,
+      "description": "Limonada natural con hielo."
     },
     {
       "id": "p-limonada-de-coco",
@@ -606,7 +685,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 5.75,
       "active": true,
-      "order": 62
+      "order": 62,
+      "description": "Limonada con crema de coco."
     },
     {
       "id": "p-limonada-frutos-rojos",
@@ -614,7 +694,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "bebidas",
       "referencePrice": 3.5,
       "active": true,
-      "order": 63
+      "order": 63,
+      "description": "Limonada con frutos rojos y hielo."
     },
     {
       "id": "p-cantarito",
@@ -622,7 +703,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cantaritos",
       "referencePrice": 3.75,
       "active": true,
-      "order": 64
+      "order": 64,
+      "description": "Tequila, jugo de naranja, limón, toronja, sal, hielo. Vaso individual."
     },
     {
       "id": "p-sorbete-mexicano",
@@ -630,7 +712,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cantaritos",
       "referencePrice": 0.5,
       "active": true,
-      "order": 65
+      "order": 65,
+      "description": "Sorbet mexicano de fruta."
     },
     {
       "id": "p-medio-cantaro",
@@ -638,7 +721,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cantaritos",
       "referencePrice": 18,
       "active": true,
-      "order": 66
+      "order": 66,
+      "description": "Cantarito tamaño familiar — mitad de cántaro de barro."
     },
     {
       "id": "p-cantaro-entero",
@@ -646,7 +730,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cantaritos",
       "referencePrice": 30,
       "active": true,
-      "order": 67
+      "order": 67,
+      "description": "Cantarito tamaño grande — cántaro de barro completo."
     },
     {
       "id": "p-michelada-pilsener",
@@ -654,7 +739,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "micheladas",
       "referencePrice": 3.75,
       "active": true,
-      "order": 68
+      "order": 68,
+      "description": "Cerveza Pilsener, limón, sal, salsa picante y clamato."
     },
     {
       "id": "p-michelada-club",
@@ -662,7 +748,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "micheladas",
       "referencePrice": 4,
       "active": true,
-      "order": 69
+      "order": 69,
+      "description": "Cerveza Club, limón, sal, salsa picante y clamato."
     },
     {
       "id": "p-michelada-corona-heineken",
@@ -670,7 +757,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "micheladas",
       "referencePrice": 5.5,
       "active": true,
-      "order": 70
+      "order": 70,
+      "description": "Cerveza Corona o Heineken, limón, sal, salsa picante y clamato."
     },
     {
       "id": "p-frozen-para-ninos",
@@ -678,7 +766,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 4,
       "active": true,
-      "order": 71
+      "order": 71,
+      "description": "Powerade azul, curacao, hielo, chupetes y gomitas."
     },
     {
       "id": "p-mexican-flag",
@@ -686,7 +775,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 72
+      "order": 72,
+      "description": "Licor de menta, crema de leche, granadina y tequila."
     },
     {
       "id": "p-ronchata",
@@ -694,7 +784,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 73
+      "order": 73,
+      "description": "Horchata, crema de coco, leche evaporada, ron."
     },
     {
       "id": "p-margarita-jamaiquina",
@@ -702,7 +793,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 74
+      "order": 74,
+      "description": "Triple seco, tequila, limón, jarabe de Jamaica."
     },
     {
       "id": "p-fizzy-mango",
@@ -710,7 +802,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 75
+      "order": 75,
+      "description": "Tequila, mango, Sprite y azúcar."
     },
     {
       "id": "p-mojituna-azteca",
@@ -718,7 +811,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 76
+      "order": 76,
+      "description": "Ron, tequila, tuna, hierba buena."
     },
     {
       "id": "p-canequila",
@@ -726,7 +820,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 77
+      "order": 77,
+      "description": "Canela, naranjilla, tequila, azúcar."
     },
     {
       "id": "p-mojito",
@@ -734,7 +829,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 78
+      "order": 78,
+      "description": "Hierba buena, limón, ron blanco, hielo, Sprite."
     },
     {
       "id": "p-pina-colada",
@@ -742,7 +838,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 79
+      "order": 79,
+      "description": "Piña, crema de coco, ron blanco, hielo."
     },
     {
       "id": "p-cuba-libre",
@@ -750,7 +847,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 80
+      "order": 80,
+      "description": "Ron blanco, limón, hielo, Coca-Cola."
     },
     {
       "id": "p-daiquiri",
@@ -758,7 +856,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 4,
       "active": true,
-      "order": 81
+      "order": 81,
+      "description": "Ron blanco, jugo de lima, azúcar, hielo."
     },
     {
       "id": "p-tequila-sunrise",
@@ -766,7 +865,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 82
+      "order": 82,
+      "description": "Tequila, granadina, hielo, jugo de naranja."
     },
     {
       "id": "p-laguna-azul",
@@ -774,7 +874,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 83
+      "order": 83,
+      "description": "Vodka, Curaçao, Sprite o limonada, hielo."
     },
     {
       "id": "p-margarita",
@@ -782,7 +883,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 84
+      "order": 84,
+      "description": "Tequila, limón, triple seco, hielo."
     },
     {
       "id": "p-la-catrina",
@@ -790,7 +892,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 6.75,
       "active": true,
-      "order": 85
+      "order": 85,
+      "description": "Cóctel especial de la casa."
     },
     {
       "id": "p-morir-sonando",
@@ -798,7 +901,8 @@ export const DEFAULT_CATALOG = {
       "categoryId": "cocteles",
       "referencePrice": 5.75,
       "active": true,
-      "order": 86
+      "order": 86,
+      "description": "Leche, leche evaporada, tequila, jugo de naranja, hielo."
     },
     {
       "id": "p-promo-1",
