@@ -476,6 +476,18 @@ class DataService {
     return normalizeOrder(await this.adapter.get(`orders/${orderId}`));
   }
 
+  /**
+   * Órdenes externas ya registradas con la misma plataforma y número
+   * (hoy y ayer, para cubrir la jornada que pasa de medianoche).
+   */
+  async findExternalDuplicates(platform, platformOrderNumber) {
+    const now = this.now();
+    const days = [dayKeyOf(now), dayKeyOf(now - 24 * 3600 * 1000)];
+    const num = String(platformOrderNumber).trim().replace(/^#/, "");
+    const lists = await Promise.all(days.map((d) => this.getOrdersByDay(d)));
+    return lists.flat().filter((o) => o.orderType === "THIRD_PARTY" && o.sourcePlatform === platform && String(o.platformOrderNumber) === num);
+  }
+
   /** Órdenes creadas en un día (AAAA-MM-DD). */
   async getOrdersByDay(dayKey) {
     const obj = await this.adapter.queryOnce("orders", "dayKey", dayKey);
@@ -486,7 +498,7 @@ class DataService {
    * Construye una orden nueva (todavía no enviada). El ID único se genera
    * aquí, en el dispositivo, para que los reintentos sean idempotentes.
    */
-  buildOrder({ tableNumber, waiter, items, generalNotes, deviceId, correctionOf = null }) {
+  buildOrder({ tableNumber, waiter, items, generalNotes, deviceId, correctionOf = null, external = null }) {
     const now = this.now();
     const orderId = `ORD-${dayKeyOf(now).replace(/-/g, "")}-${randomId(6)}`;
     const cleanItems = items.map((it, i) => ({
@@ -506,7 +518,21 @@ class DataService {
       orderNumber: null,
       type: correctionOf ? "CORRECTION" : "NORMAL",
       correctionOf: correctionOf || null,
-      tableNumber: Number(tableNumber),
+      // DINE_IN = pedido de mesa · THIRD_PARTY = pedido externo (PedidosYa…)
+      orderType: external ? "THIRD_PARTY" : "DINE_IN",
+      tableNumber: external ? null : Number(tableNumber),
+      ...(external ? {
+        sourcePlatform: external.platform,                       // "PEDIDOS_YA"
+        platformOrderNumber: String(external.platformOrderNumber).trim(), // "148" (NO es el ID interno)
+        customerName: (external.customerName || "").trim(),
+        receivedAt: external.receivedAt,                         // hora de ingreso a INSTAOrder
+        preparationMinutes: external.preparationMinutes,         // minutos asignados en PedidosYa
+        targetReadyAt: external.targetReadyAt,                   // receivedAt + minutos (o ajuste manual)
+        targetManual: !!external.targetManual,
+        duplicateOverride: !!external.duplicateOverride,
+        ocrUsed: !!external.ocrUsed,
+        enteredBy: { id: waiter.id, name: waiter.name },
+      } : {}),
       waiterId: waiter.id,
       waiterName: waiter.name, // copia del nombre al momento de crear la orden
       deviceId,
@@ -550,6 +576,7 @@ class DataService {
       events: {
         [this.adapter.newKey()]: { type: "ORDER_CREATED", at: order.createdAt, byId: by.id, byName: by.name, deviceId: order.deviceId },
         [this.adapter.newKey()]: { type: "ORDER_SENT", at: SERVER_TS, byId: by.id, byName: by.name, deviceId: order.deviceId },
+        ...(order.duplicateOverride ? { [this.adapter.newKey()]: { type: "DUPLICATE_CONFIRMED", at: SERVER_TS, byId: by.id, byName: by.name } } : {}),
       },
     };
     // Firebase no guarda null: los quitamos para mantener datos limpios.
@@ -629,6 +656,7 @@ class DataService {
       [`orders/${id}/waiterNotification/acknowledgedBy`]: { id: waiter?.id || "", name: waiter?.name || "" },
       [`orders/${id}/active`]: false,
       ...this._event(id, "NOTIFICATION_ACKNOWLEDGED", waiter),
+      ...(order.orderType === "THIRD_PARTY" ? this._event(id, "DISPATCHED", waiter) : {}),
     });
   }
 

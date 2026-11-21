@@ -23,10 +23,11 @@ import { esc, fmtClock, fmtDuration, toast, confirmDialog, $ } from "./js/ui.js"
 import { WaiterScreen, startWaiterAlerts } from "./js/waiter.js";
 import { KitchenScreen, HistoryScreen } from "./js/kitchen.js";
 import { SettingsScreen } from "./js/settings.js";
+import { ExternalScreen } from "./js/external.js";
 import { showLogin, watchMyProfile } from "./js/auth.js";
 import { initInstall, installButtonHtml, startInstall, onInstallChange, HelpScreen } from "./js/install.js";
 
-export const APP_VERSION = "1.2.0";
+export const APP_VERSION = "1.3.0";
 
 /* ------------------------------------------------------------------ */
 /* Pantalla de inicio                                                  */
@@ -55,6 +56,10 @@ const HomeScreen = {
             <span class="mode-txt"><b>MODO MESERO</b><small>Tomar pedidos en mesa</small></span>
             ${last === "mesero" ? '<span class="mode-last">Último usado</span>' : ""}
           </button>` : ""}
+          ${can("waiter") ? `<button class="mode-btn mode-ext" data-go="externos">
+            <span class="mode-ico">🛵</span>
+            <span class="mode-txt"><b>PEDIDOS EXTERNOS</b><small>PedidosYa · subir captura</small></span>
+          </button>` : ""}
           ${can("kitchen") ? `<button class="mode-btn mode-kitchen" data-mode="cocina">
             <span class="mode-ico">👨‍🍳</span>
             <span class="mode-txt"><b>MODO COCINA</b><small>Pantalla de órdenes (tablet)</small></span>
@@ -64,6 +69,7 @@ const HomeScreen = {
         <div class="install-slot">${installButtonHtml()}</div>
         <div class="home-links">
           <button class="link-btn" data-go="config">⚙️ Configuración</button>
+          <button class="link-btn" data-go="historial">📚 Historial</button>
           <button class="link-btn" data-go="ayuda">❓ Ayuda e instalación</button>
         </div>
         <p class="home-version">v${APP_VERSION}${IS_DEMO ? " · modo demo local" : ""}</p>
@@ -95,6 +101,18 @@ function tickClocks() {
     if (el.textContent !== v) el.textContent = v;
   });
   const now = dataService.now();
+  // Cuenta regresiva hacia la hora objetivo (se calcula con la hora actual; nunca se "reinicia").
+  document.querySelectorAll("[data-until]").forEach((el) => {
+    const until = Number(el.dataset.until);
+    if (!until) return;
+    const ms = until - now;
+    const min = Math.ceil(Math.abs(ms) / 60000);
+    el.textContent = ms >= 0 ? (ms < 60000 ? "MENOS DE 1 MIN" : `${min} MIN RESTANTES`) : `ATRASADA ${min} MIN`;
+    const box = el.closest("[data-urgency]");
+    const u = ms < 0 ? "late" : ms <= 3 * 60000 ? "soon" : "ok";
+    if (box && box.dataset.urgency !== u) box.dataset.urgency = u;
+    el.classList.toggle("txt-late", ms < 0);
+  });
   document.querySelectorAll("[data-since]").forEach((el) => {
     const since = Number(el.dataset.since);
     if (!since) return;
@@ -259,6 +277,7 @@ async function boot() {
   defineRoute("historial", HistoryScreen);
   defineRoute("config", SettingsScreen);
   defineRoute("ayuda", HelpScreen);
+  defineRoute("externos", ExternalScreen);
 
   // Recordar el último modo usado en este dispositivo.
   if (!location.hash || location.hash === "#/" || location.hash === "#") {

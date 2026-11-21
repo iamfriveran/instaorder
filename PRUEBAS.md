@@ -60,3 +60,29 @@ Pruebas automatizadas ejecutadas el 19-nov-2026 con un navegador Chromium real (
 - ✅ "Olvidó su contraseña" prepara una cuenta nueva con los mismos roles.
 - ✅ Regresión 37/37 + bebidas.
 - [ ] Pendiente con Firebase real: reglas nuevas (no hay emulador en este entorno). Probar tras activar: que un usuario desactivado no pueda leer órdenes y que un mesero no pueda completar una orden.
+
+## v1.3.0 — Pedidos externos (PedidosYa), OCR e historial permanente (20-nov-2026)
+OCR probado con Tesseract.js 5.1.1 real (mismo motor que usa el teléfono) sobre la captura real #148 y dos variantes generadas a partir de ella.
+
+| # | Prueba | Resultado |
+|---|---|---|
+| 1 | OCR captura real #148 | ✅ #148 · Elvis Steven Zumbana · producto reconocido como **Promo 2 – Doble Antojo** |
+| 2 | Tiempo − 15 + | ✅ 15 min (variante); captura real: 11 min. No se confunde con 2374595122 ni con la cédula |
+| 3 | 7:30 PM + 15 min | ✅ 7:45 PM |
+| 4 | Tiempo no reconocido | ✅ aviso rojo, campo editable, confirmación explícita para enviar sin tiempo |
+| 5 | Productos y cantidades (5 productos, 2Por) | ✅ Quesadilla Full, Burrito Clásico Res, 2× Horchata, Agua de Jamaica |
+| 6 | Producto en varias líneas | ✅ "1 burrito res+1 / quesadilla / res+gaseosa 300ml" unido en un solo producto (promo) |
+| 7 | Duplicado | ✅ "ESTA ORDEN YA FUE REGISTRADA", no se creó otra |
+| 8 | Llega a cocina | ✅ al instante, parpadeando, con hora objetivo y cuenta regresiva |
+| 9 | Aceptar | ✅ deja de parpadear |
+| 10 | Completar | ✅ sale del panel de cocina, alerta de despacho |
+| 11 | Alerta al mesero | ✅ "LISTO PARA DESPACHAR", se apaga al confirmar |
+| 12 | Historial permanente | ✅ la orden sigue tras confirmar despacho (eventos DISPATCHED, etc.) |
+| 13 | Historial compartido | ✅ mismo historial en teléfono del mesero y tablet de cocina |
+| 14 | Pedido de mesa | ✅ también permanece tras aceptar la alerta |
+| 15 | Mesa + externo simultáneos | ✅ ambos en cocina; el externo no ocupa ninguna mesa |
+| 16 | Desconexión | ✅ (pruebas anteriores) sin conexión no se envía ni se verifica; borrador guardado |
+| 17 | Actualización | ✅ aviso de versión nueva, caché nueva, datos intactos |
+| — | Regresión | ✅ 37/37 + bebidas + usuarios |
+
+Pendiente en real: probar con varias capturas reales de PedidosYa (distintos productos, combos, notas del cliente) y en los teléfonos del restaurante; publicar las reglas nuevas y verificar en Firebase.

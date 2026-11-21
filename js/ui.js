@@ -134,3 +134,19 @@ export async function askPin(expected) {
   toast("PIN incorrecto", "error");
   return false;
 }
+
+/* ---------------- Tipos de orden ---------------- */
+
+export const PLATFORM_LABELS = { PEDIDOS_YA: "PEDIDOS YA" };
+
+/** true si es un pedido externo (PedidosYa u otra plataforma). */
+export const isExternal = (o) => o?.orderType === "THIRD_PARTY";
+
+/** "MESA 07" o "PEDIDOS YA #148". */
+export function orderTitle(o) {
+  if (isExternal(o)) return `${PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform} #${o.platformOrderNumber}`;
+  return `MESA ${tableLabel(o.tableNumber)}`;
+}
+
+/** "7:45 PM" a partir de un timestamp. Alias claro para hora objetivo. */
+export const fmtHour = (ms) => fmtTime(ms);

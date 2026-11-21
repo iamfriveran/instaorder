@@ -17,6 +17,7 @@ import { getCook, setCook, getPrefs } from "./store.js";
 import { playAlert, audioReady, unlockAudio, keepScreenOn } from "./sound.js";
 import {
   $, esc, toast, dialog, confirmDialog, tableLabel, fmtTime, fmtDateTime, fmtDuration, orderLabel,
+  isExternal, orderTitle, PLATFORM_LABELS,
 } from "./ui.js";
 
 const expanded = new Set();     // tarjetas con detalle abierto
@@ -33,6 +34,12 @@ const cookBy = () => getCook() || { id: "", name: "Cocina" };
 /* Tarjeta de orden                                                    */
 /* ------------------------------------------------------------------ */
 
+function isDrinkItem(it) {
+  const p = state.catalog.products.find((x) => x.id === it.productId);
+  const c = p && state.catalog.categories.find((k) => k.id === p.categoryId);
+  return c?.station === "waiter";
+}
+
 /** Contenido de promociones/combos: se toma del catálogo por productId. */
 function productDesc(it) {
   return it.description || state.catalog.products.find((p) => p.id === it.productId)?.description || "";
@@ -44,7 +51,7 @@ function itemsHtml(o, interactive) {
       ${interactive ? `<button class="k-check" data-action="prep" data-id="${esc(o.orderId)}" data-i="${i}"
         aria-label="Marcar preparado" aria-pressed="${it.prepared ? "true" : "false"}">${it.prepared ? "✓" : ""}</button>` : ""}
       <div class="k-item-body">
-        <div class="k-item-name"><b>${it.quantity} ×</b> ${esc(it.productName.toUpperCase())}</div>
+        <div class="k-item-name"><b>${it.quantity} ×</b> ${esc(it.productName.toUpperCase())}${isDrinkItem(it) ? ' <span class="k-drink">🥤 bebida</span>' : ""}</div>
         ${productDesc(it) ? `<div class="k-desc">${esc(productDesc(it))}</div>` : ""}
         ${it.notes ? `<div class="k-note">➤ ${esc(it.notes)}</div>` : ""}
       </div>
@@ -57,16 +64,24 @@ function cardHtml(o) {
   const open = isNew ? expanded.has(o.orderId) : !collapsed.has(o.orderId);
   const hasNotes = !!o.generalNotes || o.items.some((i) => i.notes);
   const allergy = /alerg/i.test(o.generalNotes || "") || o.items.some((i) => /alerg/i.test(i.notes || ""));
-  return `<article class="k-card ${isNew ? "k-new" : "k-accepted"} ${o.type === "CORRECTION" ? "k-correction" : ""}" data-age="ok" data-key="${esc(o.orderId)}">
+  const ext = isExternal(o);
+  return `<article class="k-card ${isNew ? "k-new" : "k-accepted"} ${o.type === "CORRECTION" ? "k-correction" : ""} ${ext ? "k-ext" : ""}" data-age="ok" data-key="${esc(o.orderId)}">
     <div class="k-head">
-      <div class="k-table"><small>MESA</small>${tableLabel(o.tableNumber)}</div>
+      ${ext
+        ? `<div class="k-table k-ext-box"><small>${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}</small>#${esc(o.platformOrderNumber)}</div>`
+        : `<div class="k-table"><small>MESA</small>${tableLabel(o.tableNumber)}</div>`}
       <div class="k-info">
-        <div class="k-num">ORDEN ${esc(orderLabel(o))}</div>
+        <div class="k-num">${ext ? `🛵 ${esc(o.customerName || "Cliente")}` : `ORDEN ${esc(orderLabel(o))}`}</div>
         <div class="k-meta">🕒 ${fmtTime(o.sentAt)} · <b class="k-elapsed" data-since="${o.sentAt || ""}"></b></div>
         <div class="k-meta">👤 ${esc(o.waiterName)} · <b>${o.itemCount ?? o.items.length} artículo(s)</b></div>
       </div>
       ${isNew ? `<span class="k-badge new">NUEVA</span>` : `<span class="k-badge acc">EN PREPARACIÓN</span>`}
     </div>
+    ${ext ? `<div class="k-target" data-urgency="ok">
+        <span>${o.preparationMinutes ? `<b>${o.preparationMinutes} MIN</b> DE PREPARACIÓN` : "SIN TIEMPO ASIGNADO"}</span>
+        ${o.targetReadyAt ? `<span>OBJETIVO <b>${fmtTime(o.targetReadyAt)}</b>${o.targetManual ? " (manual)" : ""}</span>
+        <b class="k-remaining" data-until="${o.targetReadyAt}"></b>` : ""}
+      </div>` : ""}
     ${o.type === "CORRECTION" ? `<div class="k-corr">✏️ CORRECCIÓN DE LA ORDEN #${esc(o.correctionOf?.orderNumber || o.correctionOf?.orderId || "")}</div>` : ""}
     ${hasNotes && !open ? `<div class="k-flag ${allergy ? "allergy" : ""}">${allergy ? "⚠️ ALERGIA / PRECAUCIÓN" : "📝 Tiene notas"}</div>` : ""}
     ${open ? `<div class="k-detail">${itemsHtml(o, !isNew)}</div>` : ""}
@@ -151,8 +166,9 @@ export const KitchenScreen = {
     if (!root) return;
     const kitchenOrders = state.activeOrders.filter((o) => o.status === "NEW" || o.status === "ACCEPTED");
     const news = kitchenOrders.filter((o) => o.status === "NEW");
+    // En preparación: primero lo que vence antes (hora objetivo de externos; aceptación para mesas).
     const acc = kitchenOrders.filter((o) => o.status === "ACCEPTED")
-      .sort((a, b) => (a.acceptedAt || 0) - (b.acceptedAt || 0));
+      .sort((a, b) => (a.targetReadyAt || a.acceptedAt || 0) - (b.targetReadyAt || b.acceptedAt || 0));
     reconcile($("#col-new", root), news);
     reconcile($("#col-acc", root), acc);
     $("#cnt-new", root).textContent = news.length;
@@ -209,7 +225,7 @@ async function onClick(e) {
       try {
         await dataService.acceptOrder(o, cookBy());
         expanded.delete(id);
-        toast(`Mesa ${tableLabel(o.tableNumber)} aceptada`, "success");
+        toast(`${orderTitle(o)} aceptada`, "success");
       } catch { b.disabled = false; toast("Sin conexión: no se pudo aceptar.", "error"); }
       break;
     case "prep": {
@@ -221,15 +237,17 @@ async function onClick(e) {
     }
     case "complete": {
       if (!o) return;
-      const ok = await confirmDialog(`¿Orden ${orderLabel(o)} completada?`,
-        `Mesa ${tableLabel(o.tableNumber)} · Mesero: ${o.waiterName}\nSe avisará al mesero que el pedido está LISTO PARA SERVIR y la orden pasará al historial.`,
+      const ok = await confirmDialog(`¿${isExternal(o) ? orderTitle(o) : "Orden " + orderLabel(o)} completada?`,
+        isExternal(o)
+          ? `${orderTitle(o)} · ${o.customerName || ""}\nSe avisará a los meseros que el pedido está LISTO PARA DESPACHAR y la orden pasará al historial.`
+          : `Mesa ${tableLabel(o.tableNumber)} · Mesero: ${o.waiterName}\nSe avisará al mesero que el pedido está LISTO PARA SERVIR y la orden pasará al historial.`,
         "Sí, COMPLETADA", "success");
       if (!ok) return;
       b.disabled = true;
       try {
         await dataService.completeOrder(o, cookBy());
         collapsed.delete(id);
-        toast(`Mesa ${tableLabel(o.tableNumber)} completada · mesero notificado`, "success");
+        toast(`${orderTitle(o)} completada · mesero notificado`, "success");
       } catch { b.disabled = false; toast("Sin conexión: no se pudo completar.", "error"); }
       break;
     }
@@ -254,31 +272,38 @@ async function chooseCook() {
 }
 
 /* ------------------------------------------------------------------ */
-/* HISTORIAL (sólo lectura)                                            */
+/* HISTORIAL (sólo lectura, para todo el personal)                     */
 /* ------------------------------------------------------------------ */
+/* Las órdenes NUNCA se borran: aceptar la alerta del mesero sólo apaga
+ * la alerta. El historial lee de Firebase por día, así que es el mismo
+ * en todos los dispositivos autorizados. */
 
 let hroot = null;
-let hstate = { day: dayKeyOf(), table: "", id: "", waiter: "", status: "COMPLETED", orders: [], loading: false, open: new Set() };
+let hstate = { day: dayKeyOf(), q: "", waiter: "", type: "", status: "DONE", orders: [], loading: false, open: new Set() };
 
 export const HistoryScreen = {
-  mount(el) {
-    if (!can("kitchen")) { toast("Tu usuario no tiene el rol de Cocina", "error"); go("inicio", { replace: true }); return; }
+  mount(el, params) {
     hroot = el;
+    if (params?.[0] === "externos") hstate.type = "THIRD_PARTY";
     hstate.day = hstate.day || dayKeyOf();
     hroot.innerHTML = `${appHeader({ subtitle: "Historial de órdenes", back: "h-back" })}${demoNotice()}
     <main class="screen history">
       <div class="h-filters">
         <label>Fecha<input class="field" type="date" data-f="day" value="${esc(hstate.day)}"></label>
-        <label>Mesa<input class="field" type="number" min="1" inputmode="numeric" data-f="table" placeholder="Todas" value="${esc(hstate.table)}"></label>
-        <label>ID / N.º orden<input class="field" type="search" data-f="id" placeholder="#1042 u ORD-…" value="${esc(hstate.id)}"></label>
+        <label class="h-q">Buscar<input class="field" type="search" data-f="q" placeholder="Mesa, # orden, cliente, producto, mesero…" value="${esc(hstate.q)}"></label>
+        <label>Tipo<select class="field" data-f="type">
+          <option value="" ${hstate.type === "" ? "selected" : ""}>Todas</option>
+          <option value="DINE_IN" ${hstate.type === "DINE_IN" ? "selected" : ""}>🍽️ Mesa (internos)</option>
+          <option value="THIRD_PARTY" ${hstate.type === "THIRD_PARTY" ? "selected" : ""}>🛵 PedidosYa (externos)</option></select></label>
         <label>Mesero<select class="field" data-f="waiter"><option value="">Todos</option>
           ${allWaiters().map((w) => `<option value="${esc(w.id)}" ${hstate.waiter === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></label>
         <label>Estado<select class="field" data-f="status">
-          <option value="COMPLETED" ${hstate.status === "COMPLETED" ? "selected" : ""}>Completadas</option>
-          <option value="" ${hstate.status === "" ? "selected" : ""}>Todas</option></select></label>
+          <option value="DONE" ${hstate.status === "DONE" ? "selected" : ""}>Completadas</option>
+          <option value="CLOSED" ${hstate.status === "CLOSED" ? "selected" : ""}>Servidas / despachadas</option>
+          <option value="" ${hstate.status === "" ? "selected" : ""}>Todas (incluye en curso)</option></select></label>
         <button class="btn btn-primary" data-action="h-reload">↻ Actualizar</button>
       </div>
-      <p class="muted small">El historial es de sólo lectura. Las órdenes nunca se eliminan.</p>
+      <p class="muted small">Sólo lectura. Las órdenes nunca se borran y todos los dispositivos ven el mismo historial.</p>
       <div id="h-summary" class="h-summary"></div>
       <div id="h-list"></div>
     </main>`;
@@ -299,10 +324,9 @@ async function load() {
   renderHist();
   try {
     let orders = await dataService.getOrdersByDay(hstate.day);
-    // Búsqueda directa por ID completo en cualquier fecha.
-    const idq = hstate.id.trim();
-    if (/^ORD-/i.test(idq) && !orders.some((o) => o.orderId === idq.toUpperCase())) {
-      const one = await dataService.getOrder(idq.toUpperCase());
+    const idq = hstate.q.trim().toUpperCase();
+    if (/^ORD-/.test(idq) && !orders.some((o) => o.orderId === idq)) {
+      const one = await dataService.getOrder(idq);
       if (one) orders = [one];
     }
     hstate.orders = orders;
@@ -314,13 +338,31 @@ async function load() {
   renderHist();
 }
 
+const typeOf = (o) => (isExternal(o) ? "THIRD_PARTY" : "DINE_IN");
+
+function haystack(o) {
+  return norm([
+    isExternal(o) ? `#${o.platformOrderNumber} ${o.platformOrderNumber} ${PLATFORM_LABELS[o.sourcePlatform] || ""} pedidosya ${o.customerName || ""}`
+      : `mesa ${o.tableNumber} mesa ${tableLabel(o.tableNumber)}`,
+    o.orderNumber ? `#${o.orderNumber} ${o.orderNumber}` : "", o.orderId, o.waiterName,
+    o.items.map((i) => i.productName).join(" "), o.generalNotes || "",
+  ].join(" "));
+}
+const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
 function filtered() {
-  const idq = hstate.id.trim().replace(/^#/, "").toUpperCase();
+  const q = norm(hstate.q.trim());
+  const mesa = q.match(/^mesa\s*(\d+)$/);   // "mesa 3" → exactamente la mesa 3
+  const num = q.match(/^#?\s*(\d+)$/);       // "148" / "#1002" → número de orden exacto
+  const words = mesa || num ? [] : q.replace(/^#/, "").split(/\s+/).filter(Boolean);
   return hstate.orders.filter((o) => {
-    if (hstate.status && o.status !== hstate.status) return false;
-    if (hstate.table && o.tableNumber !== Number(hstate.table)) return false;
+    if (hstate.status === "DONE" && o.status !== "COMPLETED") return false;
+    if (hstate.status === "CLOSED" && !(o.status === "COMPLETED" && o.waiterNotification?.status === "ACKNOWLEDGED")) return false;
+    if (hstate.type && typeOf(o) !== hstate.type) return false;
     if (hstate.waiter && o.waiterId !== hstate.waiter) return false;
-    if (idq && !(String(o.orderNumber || "") === idq || o.orderId.toUpperCase().includes(idq))) return false;
+    if (mesa && (isExternal(o) || o.tableNumber !== Number(mesa[1]))) return false;
+    if (num && !(String(o.platformOrderNumber || "") === num[1] || String(o.orderNumber || "") === num[1] || (!isExternal(o) && String(o.tableNumber) === num[1]))) return false;
+    if (words.length) { const h = haystack(o); if (!words.every((w) => h.includes(w))) return false; }
     return true;
   }).sort((a, b) => (b.completedAt || b.sentAt || 0) - (a.completedAt || a.sentAt || 0));
 }
@@ -328,10 +370,18 @@ function filtered() {
 const STATUS_TXT = { NEW: "Nueva", ACCEPTED: "En preparación", COMPLETED: "Completada" };
 const NOTIF_TXT = { NONE: "—", PENDING: "Pendiente", DELIVERED: "Recibida por mesero", ACKNOWLEDGED: "Aceptada por mesero" };
 const EVENT_TXT = {
-  ORDER_CREATED: "Orden creada", ORDER_SENT: "Orden enviada", ORDER_ACCEPTED: "Aceptada por cocina",
-  ITEM_PREPARED: "Producto preparado", ITEM_UNPREPARED: "Producto desmarcado", ORDER_COMPLETED: "Orden completada",
-  NOTIFICATION_DELIVERED: "Notificación recibida por mesero", NOTIFICATION_ACKNOWLEDGED: "Notificación aceptada por mesero",
+  ORDER_CREATED: "Orden creada", ORDER_SENT: "Enviada a cocina", ORDER_ACCEPTED: "Aceptada por cocina",
+  ITEM_PREPARED: "Producto preparado", ITEM_UNPREPARED: "Producto desmarcado", ORDER_COMPLETED: "Completada",
+  NOTIFICATION_DELIVERED: "Alerta recibida por mesero", NOTIFICATION_ACKNOWLEDGED: "Alerta aceptada por mesero",
+  DISPATCHED: "Despachada al motorizado", DUPLICATE_CONFIRMED: "Registrada como duplicado confirmado",
 };
+
+function finalLabel(o) {
+  if (o.status !== "COMPLETED") return STATUS_TXT[o.status] || o.status;
+  const acked = o.waiterNotification?.status === "ACKNOWLEDGED";
+  if (isExternal(o)) return acked ? "COMPLETADA — DESPACHADA" : "COMPLETADA — POR DESPACHAR";
+  return acked ? "COMPLETADA — SERVIDA" : "COMPLETADA — POR SERVIR";
+}
 
 function renderHist() {
   const list = $("#h-list", hroot);
@@ -339,30 +389,50 @@ function renderHist() {
   if (hstate.loading) { list.innerHTML = `<p class="empty">Cargando…</p>`; return; }
   const rows = filtered();
   const prep = rows.filter((o) => o.completedAt && o.acceptedAt).map((o) => o.completedAt - o.acceptedAt);
+  const ext = rows.filter(isExternal);
+  const onTime = ext.filter((o) => o.targetReadyAt && o.completedAt && o.completedAt <= o.targetReadyAt).length;
+  const withTarget = ext.filter((o) => o.targetReadyAt && o.completedAt).length;
   $("#h-summary", hroot).innerHTML = `<span><b>${rows.length}</b> orden(es)</span>
-    ${prep.length ? `<span>Preparación promedio: <b>${fmtDuration(prep.reduce((a, b) => a + b, 0) / prep.length)}</b></span>` : ""}`;
+    <span>🍽️ ${rows.length - ext.length} · 🛵 ${ext.length}</span>
+    ${prep.length ? `<span>Preparación promedio: <b>${fmtDuration(prep.reduce((a, b) => a + b, 0) / prep.length)}</b></span>` : ""}
+    ${withTarget ? `<span>PedidosYa a tiempo: <b>${onTime}/${withTarget}</b></span>` : ""}`;
   list.innerHTML = rows.length ? rows.map((o) => {
     const open = hstate.open.has(o.orderId);
+    const x = isExternal(o);
     const events = Object.values(o.events || {}).sort((a, b) => (a.at || 0) - (b.at || 0));
-    return `<article class="h-row ${open ? "open" : ""}">
+    const late = x && o.targetReadyAt && o.completedAt && o.completedAt > o.targetReadyAt;
+    return `<article class="h-card ${x ? "h-ext" : ""} ${open ? "open" : ""}">
       <button class="h-sum" data-action="h-toggle" data-id="${esc(o.orderId)}">
-        <span class="h-num">${esc(orderLabel(o))}</span>
-        <span class="h-table">Mesa ${tableLabel(o.tableNumber)}</span>
-        <span class="h-waiter">👤 ${esc(o.waiterName)}</span>
-        <span class="h-time">${fmtTime(o.sentAt)} → ${fmtTime(o.completedAt)}</span>
-        <span class="h-prep">⏱ ${o.completedAt && o.acceptedAt ? fmtDuration(o.completedAt - o.acceptedAt) : "—"}</span>
-        <span class="status-chip ${o.status === "COMPLETED" ? "st-ready" : "st-preparing"}">${STATUS_TXT[o.status] || o.status}</span>
+        <div class="h-title">${x ? '<span class="ext-pill">PEDIDOS YA</span>' : "🍽️"} <b>${esc(x ? "#" + o.platformOrderNumber : "MESA " + tableLabel(o.tableNumber))}</b>
+          <span class="status-chip ${o.status === "COMPLETED" ? "st-ready" : "st-preparing"}">${finalLabel(o)}</span></div>
+        <div class="h-lines">
+          ${x && o.customerName ? `<span>Cliente: <b>${esc(o.customerName)}</b></span>` : ""}
+          <span>Mesero: ${esc(o.waiterName)}</span>
+          <span>${fmtDateTime(o.sentAt)}</span>
+          <span>Productos: ${o.itemCount ?? o.items.length}</span>
+          ${x && o.preparationMinutes ? `<span>Preparación asignada: ${o.preparationMinutes} min</span>` : ""}
+          ${late ? `<span class="txt-late">Atrasada ${fmtDuration(o.completedAt - o.targetReadyAt)}</span>` : ""}
+        </div>
+        <span class="h-more">${open ? "▲ OCULTAR" : "▼ VER DETALLES"}</span>
       </button>
       ${open ? `<div class="h-detail">
         ${o.type === "CORRECTION" ? `<div class="k-corr">✏️ Corrección de la orden #${esc(o.correctionOf?.orderNumber || o.correctionOf?.orderId || "")}</div>` : ""}
+        ${o.duplicateOverride ? `<div class="k-corr">⚠️ Registrada como duplicado confirmado</div>` : ""}
         <div class="h-grid">
-          <div><small>ID</small>${esc(o.orderId)}</div>
-          <div><small>Enviada</small>${fmtDateTime(o.sentAt)}</div>
+          <div><small>Tipo</small>${x ? `Externo · ${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}` : "Interno · Mesa"}</div>
+          ${x ? `<div><small>Orden externa</small>#${esc(o.platformOrderNumber)}</div><div><small>Cliente</small>${esc(o.customerName || "—")}</div>`
+            : `<div><small>Mesa</small>${tableLabel(o.tableNumber)}</div>`}
+          <div><small>ID INSTAOrder</small>${esc(o.orderId)}${o.orderNumber ? ` (#${o.orderNumber})` : ""}</div>
+          <div><small>${x ? "Ingresada por" : "Mesero"}</small>${esc(o.enteredBy?.name || o.waiterName)}</div>
+          <div><small>Creada</small>${fmtDateTime(o.createdAt)}</div>
+          ${x ? `<div><small>Recibida</small>${fmtDateTime(o.receivedAt)}</div>` : ""}
+          <div><small>Enviada a cocina</small>${fmtDateTime(o.sentAt)}</div>
+          ${x ? `<div><small>Tiempo asignado</small>${o.preparationMinutes ? o.preparationMinutes + " min" : "—"}</div>
+                 <div><small>Hora objetivo</small>${fmtDateTime(o.targetReadyAt)}${o.targetManual ? " (manual)" : ""}</div>` : ""}
           <div><small>Aceptada en cocina</small>${fmtDateTime(o.acceptedAt)}${o.acceptedBy?.name ? ` · ${esc(o.acceptedBy.name)}` : ""}</div>
           <div><small>Completada</small>${fmtDateTime(o.completedAt)}${o.completedBy?.name ? ` · ${esc(o.completedBy.name)}` : ""}</div>
           <div><small>Tiempo de preparación</small>${o.completedAt && o.acceptedAt ? fmtDuration(o.completedAt - o.acceptedAt) : "—"}</div>
-          <div><small>Tiempo total</small>${o.completedAt && o.sentAt ? fmtDuration(o.completedAt - o.sentAt) : "—"}</div>
-          <div><small>Aviso al mesero</small>${NOTIF_TXT[o.waiterNotification?.status] || "—"}${o.waiterNotification?.acknowledgedAt ? ` · ${fmtTime(o.waiterNotification.acknowledgedAt)}` : ""}</div>
+          <div><small>${x ? "Despacho confirmado" : "Alerta aceptada por mesero"}</small>${o.waiterNotification?.acknowledgedAt ? `${fmtDateTime(o.waiterNotification.acknowledgedAt)}${o.waiterNotification.acknowledgedBy?.name ? ` · ${esc(o.waiterNotification.acknowledgedBy.name)}` : ""}` : NOTIF_TXT[o.waiterNotification?.status] || "—"}</div>
         </div>
         ${itemsHtml(o, false)}
         <details class="h-events"><summary>Registro de eventos (${events.length})</summary>
@@ -376,7 +446,7 @@ function renderHist() {
 function onHistClick(e) {
   const b = e.target.closest("[data-action]");
   if (!b) return;
-  if (b.dataset.action === "h-back") history.length > 1 ? history.back() : go("cocina");
+  if (b.dataset.action === "h-back") history.length > 1 ? history.back() : go("inicio");
   else if (b.dataset.action === "h-reload") load();
   else if (b.dataset.action === "h-toggle") {
     const id = b.dataset.id;
@@ -391,7 +461,6 @@ function onHistInput(e) {
   if (!f) return;
   hstate[f] = e.target.value;
   if (f === "day") load();
-  else if (f === "id" && /^ORD-.{10,}/i.test(e.target.value)) { clearTimeout(idTimer); idTimer = setTimeout(load, 400); }
+  else if (f === "q" && /^ORD-.{10,}/i.test(e.target.value)) { clearTimeout(idTimer); idTimer = setTimeout(load, 400); }
   else renderHist();
 }
-

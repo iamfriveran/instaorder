@@ -29,6 +29,7 @@ Sistema interno de pedidos en mesa y comunicación en tiempo real entre **mesero
 14. [Limitaciones conocidas y alternativas](#14-limitaciones-conocidas-y-alternativas)
 15. [INSTALACIÓN DE INSTAOrder EN TELÉFONOS](#15-instalación-de-instaorder-en-teléfonos)
 16. [USUARIOS, CONTRASEÑAS Y ROLES](#16-usuarios-contraseñas-y-roles)
+17. [PEDIDOS EXTERNOS (PedidosYa) e HISTORIAL PERMANENTE](#17-pedidos-externos-pedidosya-e-historial-permanente)
 
 ---
 
@@ -56,9 +57,12 @@ instaorder/
 │   ├── router.js          Navegación (#/mesero, #/cocina, …)
 │   ├── auth.js            Inicio de sesión, primer Admin, cuentas bloqueadas
 │   ├── components.js      Cabecera e indicador de conexión
+│   ├── external.js        PEDIDOS EXTERNOS: subir captura, revisar, enviar
+│   ├── pedidosya.js       OCR local (Tesseract.js) + lectura de capturas de PedidosYa
 │   ├── install.js         Botón "Instalar INSTAOrder" y pantalla de Ayuda
 │   ├── sound.js           Sonidos (Web Audio), vibración, pantalla encendida
 │   └── ui.js              Diálogos, avisos y formatos
+├── ocr/lang/            Modelos OCR español + inglés (Tesseract, ~5 MB)
 ├── assets/
 │   ├── logo.png           Logo de Takolandia (reemplazable)
 │   └── icons/             Iconos de la PWA
@@ -499,3 +503,49 @@ Un empleado con Mesero + Cocina ve los dos modos y cambia entre ellos. Cada pers
 - Cualquiera que tenga la dirección podría crear una cuenta en Firebase, pero **sin perfil ni roles no puede ver ni hacer nada**.
 - Los usuarios usan un correo interno (`usuario@instaorder-takolandia.firebaseapp.com`) que nunca recibe correos.
 - El PIN de Configuración ya no se usa en este modo.
+
+---
+
+## 17. PEDIDOS EXTERNOS (PedidosYa) e HISTORIAL PERMANENTE
+
+Versión 1.3.0. Reemplaza el envío de capturas por WhatsApp. **Costo adicional: $0.**
+
+### Flujo
+1. En PedidosYa recibes la orden y asignas los minutos (control **− 11 +**), como siempre.
+2. Tomas la captura.
+3. INSTAOrder › **🛵 PEDIDOS EXTERNOS** › **📸 SUBIR CAPTURA**.
+4. El teléfono lee la captura (OCR) y llena: **número de orden (#148)**, **cliente**, **minutos asignados**, **productos y cantidades** (`1Por` = 1, `2Por` = 2…). Los productos se buscan en el catálogo; un combo como "1 burrito res + 1 quesadilla res + gaseosa 300ml" se reconoce como **Promo 2 – Doble Antojo**.
+5. **Hora objetivo = hora de ingreso + minutos** (ej. 7:30 PM + 15 = 7:45 PM). Todo es editable; si cambias la hora objetivo a mano queda marcada "AJUSTE MANUAL".
+6. **CONFIRMAR Y ENVIAR A COCINA** → aparece al instante en cocina, en el mismo panel que las mesas, con distintivo rojo **PEDIDOS YA #148**, cliente, minutos, hora objetivo y **cuenta regresiva** (amarilla a 3 min, roja **ATRASADA** si se pasa).
+7. Cocina **ACEPTA** (deja de parpadear) y **COMPLETA**.
+8. **Todos los meseros** reciben **"PEDIDOS YA · ORDEN #148 · ¡PEDIDO LISTO PARA DESPACHAR!"**. El primero que toca **ACEPTAR / CONFIRMAR DESPACHO** la apaga en todos (queda registrado quién y a qué hora).
+
+### OCR gratuito y privado
+- **Tesseract.js** (código abierto) se ejecuta **en el teléfono**: la imagen no se sube a ningún servicio ni a Firebase.
+- La librería se descarga de jsDelivr (CDN gratuito); los modelos **español + inglés** están en `ocr/lang/` del proyecto (~5 MB, se descargan una vez y quedan guardados). Se usan los dos porque el modelo español lee "#148" como "4148".
+- La imagen sólo vive en memoria mientras revisas; al enviar o descartar se borra. **No se guardan** teléfono, correo, cédula ni datos de facturación: sólo número, cliente, productos y tiempos.
+- El número de orden y los minutos se ubican por **posición** en la captura (el número junto a "minu.." entre − y +), para no confundirlos con teléfonos, cédulas o precios. Si no se reconocen, la pantalla lo avisa en rojo; **nunca se inventa un tiempo**.
+
+### Duplicados
+Antes de enviar se buscan órdenes de la misma plataforma con el mismo número **hoy y ayer**. Si existe: **"⚠️ ESTA ORDEN YA FUE REGISTRADA"** con el registro existente y no se crea otra. Si de verdad es otro pedido, se puede registrar con doble confirmación (queda marcado "duplicado confirmado"). Cada orden tiene su propio ID interno (`ORD-…`); el #148 de PedidosYa es un dato aparte.
+
+### Historial permanente
+- Las órdenes **nunca se borran** (ni internas ni externas). Aceptar la alerta del mesero **sólo apaga la alerta**.
+- **Historial** accesible para todo el personal: desde el inicio, desde la barra del mesero (📚) y desde cocina. Todos ven el mismo historial (Firebase), sin importar qué teléfono creó la orden.
+- Búsqueda: `mesa 7`, `148` / `#148`, nombre del cliente, producto ("doble antojo"), mesero. Filtros: fecha, tipo (Mesa / PedidosYa), mesero, estado (completadas, servidas/despachadas, todas).
+- Cada tarjeta se expande con todos los tiempos (creada, recibida, enviada, minutos asignados, hora objetivo, aceptada, completada, alerta aceptada), personas, productos, notas y registro de eventos. Sólo lectura.
+- **Mis pedidos** (mesero) separa: **Órdenes activas** · **Pedidos listos** · botón **Historial**.
+
+### Datos (Firebase)
+Mismo nodo `/orders` que los pedidos de mesa, con campos nuevos:
+`orderType` (`DINE_IN` | `THIRD_PARTY`), `sourcePlatform` (`PEDIDOS_YA`), `platformOrderNumber`, `customerName`, `receivedAt`, `preparationMinutes`, `targetReadyAt`, `targetManual`, `enteredBy`, `ocrUsed`, `duplicateOverride`. La alerta usa el mismo `waiterNotification` (`PENDING` → `ACKNOWLEDGED`). Las órdenes antiguas sin `orderType` se tratan como de mesa.
+
+### Para activarlo
+1. Requiere el modo usuarios (sección 16) ya activado.
+2. **Realtime Database › Rules**: pega el nuevo `database.rules.json` › **Publish** (permite los campos nuevos y que cualquier mesero confirme un despacho externo).
+3. Sube todos los archivos a GitHub, **incluida la carpeta `ocr`**.
+
+### Limitaciones
+- El OCR depende de la calidad de la captura: usa la captura completa de la orden, sin recortar ni hacer zoom. Siempre revisa antes de enviar (los productos dudosos aparecen en amarillo; los no identificados, en rojo).
+- La primera lectura en cada teléfono tarda más (descarga ~5 MB). Luego, 2–5 segundos según el teléfono.
+- Las bebidas de un pedido externo **sí aparecen en cocina** (marcadas 🥤) porque van empacadas en el mismo pedido.

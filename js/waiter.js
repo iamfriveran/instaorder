@@ -27,6 +27,7 @@ import {
 import { playAlert, vibrate } from "./sound.js";
 import {
   $, $$, esc, toast, dialog, confirmDialog, tableLabel, fmtRefPrice, fmtTime, orderLabel,
+  isExternal, orderTitle, PLATFORM_LABELS,
 } from "./ui.js";
 
 const QUICK_NOTES = ["Sin cebolla", "Salsa aparte", "Extra picante", "Sin guacamole", "Bien cocido", "Separar en dos platos", "Sin queso", "Para llevar"];
@@ -71,7 +72,7 @@ function itemsText(items) {
 
 /** El estado depende de las órdenes activas, nunca bloquea una mesa. */
 export function tableStatus(n) {
-  const orders = state.activeOrders.filter((o) => o.tableNumber === n);
+  const orders = state.activeOrders.filter((o) => !isExternal(o) && o.tableNumber === n);
   if (orders.some((o) => o.status === "COMPLETED")) return { key: "ready", orders };
   if (orders.some((o) => o.status === "ACCEPTED")) return { key: "preparing", orders };
   if (orders.some((o) => o.status === "NEW")) return { key: "sent", orders };
@@ -138,9 +139,12 @@ function waiterHeader(back) {
 
 function bottomNav(active) {
   const pend = state.activeOrders.filter((o) => o.waiterId === getWaiter()?.id).length + outboxEntries().length + getDrinks().length;
+  const extReady = state.activeOrders.filter((o) => isExternal(o) && o.status === "COMPLETED" && o.waiterNotification?.status !== "ACKNOWLEDGED").length;
   return `<nav class="bottom-nav">
     <button class="${active === "tables" ? "on" : ""}" data-action="nav-tables"><span>🍽️</span>Mesas</button>
+    <button data-action="nav-ext"><span>🛵</span>Externos${extReady ? `<i class="badge">${extReady}</i>` : ""}</button>
     <button class="${active === "orders" ? "on" : ""}" data-action="nav-orders"><span>🧾</span>Mis pedidos${pend ? `<i class="badge">${pend}</i>` : ""}</button>
+    <button data-action="nav-hist"><span>📚</span>Historial</button>
     <button data-action="nav-home"><span>🏠</span>Inicio</button>
   </nav>`;
 }
@@ -251,7 +255,7 @@ function mountBuilder(table) {
 function renderTableInfo() {
   const el = $("#table-info", root);
   if (!el) return;
-  const orders = state.activeOrders.filter((o) => o.tableNumber === ui.table);
+  const orders = state.activeOrders.filter((o) => !isExternal(o) && o.tableNumber === ui.table);
   el.innerHTML = orders.length ? `<div class="table-active">Esta mesa tiene ${orders.length} orden(es) activa(s): ${orders.map((o) =>
     `<span class="mini-chip ${ORDER_STATUS[o.status]?.cls}">${esc(orderLabel(o))} · ${ORDER_STATUS[o.status]?.label}</span>`).join(" ")}</div>` : "";
 }
@@ -550,18 +554,22 @@ function renderMyOrders() {
       <div class="mo-top"><b>MESA ${tableLabel(t)}</b><span class="status-chip st-pending">Pendiente de enviar</span></div>
       <div class="mo-items">${d.items.map((i) => `${i.quantity}× ${esc(i.productName)}`).join(" · ") || "(corrección)"}</div>
     </div>`).join("");
-  html += `<h3 class="sec">🍳 En cocina / listas</h3>`;
-  html += mine.length ? mine.map((o) => {
+  const card = (o) => {
     const s = ORDER_STATUS[o.status] || {};
     return `<div class="mo-card ${s.cls}">
-      <div class="mo-top"><b>MESA ${tableLabel(o.tableNumber)}</b> <span class="mo-id">${esc(orderLabel(o))}</span>
-        <span class="status-chip ${s.cls}">${s.label}</span></div>
+      <div class="mo-top">${isExternal(o) ? `<span class="ext-pill">PEDIDOS YA</span><b>#${esc(o.platformOrderNumber)}</b>` : `<b>MESA ${tableLabel(o.tableNumber)}</b> <span class="mo-id">${esc(orderLabel(o))}</span>`}
+        <span class="status-chip ${s.cls}">${isExternal(o) && o.status === "COMPLETED" ? "Listo para despachar" : s.label}</span></div>
       ${o.type === "CORRECTION" ? `<div class="mini-chip st-pending">Corrección de #${esc(o.correctionOf?.orderNumber || "")}</div>` : ""}
       <div class="mo-items">${o.items.map((i) => `${i.quantity}× ${esc(i.productName)}${i.notes ? ` <em>(${esc(i.notes)})</em>` : ""}`).join(" · ") || "(sólo nota)"}</div>
       <div class="mo-meta">Enviada ${fmtTime(o.sentAt)} · hace <span data-since="${o.sentAt || ""}"></span></div>
-      ${o.status !== "COMPLETED" ? `<button class="btn btn-sm btn-ghost" data-action="correct" data-id="${esc(o.orderId)}">✏️ Enviar corrección</button>` : ""}
+      ${o.status !== "COMPLETED" && !isExternal(o) ? `<button class="btn btn-sm btn-ghost" data-action="correct" data-id="${esc(o.orderId)}">✏️ Enviar corrección</button>` : ""}
     </div>`;
-  }).join("") : `<p class="empty">No tienes órdenes activas.</p>`;
+  };
+  const activeMine = mine.filter((o) => o.status !== "COMPLETED");
+  const readyMine = mine.filter((o) => o.status === "COMPLETED");
+  html += `<h3 class="sec">🍳 Órdenes activas</h3>` + (activeMine.map(card).join("") || `<p class="empty small">No tienes órdenes en cocina.</p>`);
+  html += `<h3 class="sec">🟢 Pedidos listos (alerta pendiente)</h3>` + (readyMine.map(card).join("") || `<p class="empty small">Ninguno.</p>`);
+  html += `<button class="btn btn-ghost btn-lg ext-hist" data-action="nav-hist">📚 Ver historial (órdenes terminadas)</button>`;
   setHtml(el, html);
   const nav = $(".bottom-nav", root);
   if (nav && nav.outerHTML !== bottomNav("orders")) nav.outerHTML = bottomNav("orders");
@@ -593,6 +601,8 @@ async function onClick(e) {
     case "nav-home": go("inicio"); break;
     case "nav-tables": go("mesero"); break;
     case "nav-orders": go("mesero/pedidos"); break;
+    case "nav-ext": go("externos"); break;
+    case "nav-hist": go("historial"); break;
     case "change-waiter": go("mesero/identificar"); break;
     case "my-account": go("config/cuenta"); break;
     case "pick-waiter": {
@@ -671,14 +681,19 @@ function alertsEnabledHere() {
   if (!getWaiter()) return false;
   // Siempre en pantallas del modo mesero; en inicio/configuración sólo si
   // este dispositivo se usa como teléfono de mesero.
-  return r === "mesero" || ((r === "inicio" || r === "config") && getLastMode() === "mesero");
+  return r === "mesero" || r === "externos" || ((r === "inicio" || r === "config" || r === "historial" || r === "ayuda") && getLastMode() === "mesero");
 }
 
+/**
+ * Alertas pendientes de este teléfono:
+ *  - pedidos de MESA: sólo los del mesero que los tomó;
+ *  - pedidos EXTERNOS: todos los meseros (el primero que confirma el despacho la apaga).
+ */
 function pendingReady() {
   const w = getWaiter();
   if (!w) return [];
-  return state.activeOrders.filter((o) => o.status === "COMPLETED" && o.waiterId === w.id
-    && o.waiterNotification?.status !== "ACKNOWLEDGED");
+  return state.activeOrders.filter((o) => o.status === "COMPLETED" && o.waiterNotification?.status !== "ACKNOWLEDGED"
+    && (isExternal(o) ? can("waiter") : o.waiterId === w.id));
 }
 
 function renderAlerts() {
@@ -697,7 +712,13 @@ function renderAlerts() {
   layer.dataset.blink = blink;
   const html = `<div class="ra-inner">
     <div class="ra-head">${list.length > 1 ? `${list.length} PEDIDOS LISTOS` : "PEDIDO LISTO"}</div>
-    ${list.map((o) => `<div class="ra-card" data-id="${esc(o.orderId)}">
+    ${list.map((o) => isExternal(o) ? `<div class="ra-card ra-ext" data-id="${esc(o.orderId)}">
+      <div class="ra-platform">🛵 ${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}</div>
+      <div class="ra-table">ORDEN #${esc(o.platformOrderNumber)}</div>
+      <div class="ra-msg">¡PEDIDO LISTO PARA DESPACHAR!</div>
+      <div class="ra-order">${o.customerName ? `CLIENTE: ${esc(o.customerName)} · ` : ""}${o.itemCount || o.items.length} artículo(s)</div>
+      <button class="btn btn-xl ra-btn" data-ack="${esc(o.orderId)}">ACEPTAR / CONFIRMAR DESPACHO</button>
+    </div>` : `<div class="ra-card" data-id="${esc(o.orderId)}">
       <div class="ra-table">🟢 MESA ${tableLabel(o.tableNumber)}</div>
       <div class="ra-msg">¡PEDIDO LISTO PARA SERVIR!</div>
       <div class="ra-order">ORDEN ${esc(orderLabel(o))} · ${o.itemCount || o.items.length} artículo(s)</div>
@@ -741,10 +762,10 @@ async function onAlertClick(e) {
   b.textContent = "Guardando…";
   try {
     await dataService.acknowledgeNotification(o, getWaiter());
-    toast(`Mesa ${tableLabel(o.tableNumber)}: alerta aceptada`, "success");
+    toast(isExternal(o) ? `${orderTitle(o)}: despacho confirmado` : `Mesa ${tableLabel(o.tableNumber)}: alerta aceptada`, "success");
   } catch (err) {
     b.disabled = false;
-    b.textContent = "ACEPTAR";
+    b.textContent = isExternal(o) ? "ACEPTAR / CONFIRMAR DESPACHO" : "ACEPTAR";
     toast("Sin conexión: no se pudo registrar. Intenta de nuevo.", "error", 4000);
   }
 }
@@ -752,7 +773,7 @@ async function onAlertClick(e) {
 /** Notificación del sistema si la app está en segundo plano (si hay permiso). */
 function systemNotify(o) {
   if (!document.hidden || !("Notification" in window) || Notification.permission !== "granted") return;
-  navigator.serviceWorker?.ready.then((reg) => reg.showNotification(`MESA ${tableLabel(o.tableNumber)} – LISTO PARA SERVIR`, {
+  navigator.serviceWorker?.ready.then((reg) => reg.showNotification(isExternal(o) ? `${orderTitle(o)} – LISTO PARA DESPACHAR` : `MESA ${tableLabel(o.tableNumber)} – LISTO PARA SERVIR`, {
     body: `Orden ${orderLabel(o)}`, tag: o.orderId, icon: "assets/icons/icon-192.png", renotify: true, requireInteraction: true,
   })).catch(() => {});
 }

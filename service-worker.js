@@ -18,7 +18,7 @@
  * actualizar la app no borra órdenes.
  */
 
-const CACHE_VERSION = "instaorder-v1.2.0";
+const CACHE_VERSION = "instaorder-v1.3.0";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -30,6 +30,8 @@ const APP_SHELL = [
   "./manifest.json",
   "./js/auth.js",
   "./js/components.js",
+  "./js/external.js",
+  "./js/pedidosya.js",
   "./js/install.js",
   "./js/kitchen.js",
   "./js/outbox.js",
@@ -49,7 +51,7 @@ const APP_SHELL = [
 ];
 
 const NEVER_CACHE = [/firebaseio\.com/, /firebasedatabase\.app/, /identitytoolkit\.googleapis\.com/, /securetoken\.googleapis\.com/];
-const CDN = [/gstatic\.com\/firebasejs/, /fonts\.googleapis\.com/, /fonts\.gstatic\.com/];
+const CDN = [/gstatic\.com\/firebasejs/, /fonts\.googleapis\.com/, /fonts\.gstatic\.com/, /cdn\.jsdelivr\.net\/npm\/tesseract/];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
