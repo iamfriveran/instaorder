@@ -86,3 +86,11 @@ OCR probado con Tesseract.js 5.1.1 real (mismo motor que usa el teléfono) sobre
 | — | Regresión | ✅ 37/37 + bebidas + usuarios |
 
 Pendiente en real: probar con varias capturas reales de PedidosYa (distintos productos, combos, notas del cliente) y en los teléfonos del restaurante; publicar las reglas nuevas y verificar en Firebase.
+
+## v1.3.1 — Correcciones con la captura real #154 (20-nov-2026)
+- ✅ #154 · Cris Benalcazar · 10 min · "2 tacos de carne + guacamole + gaseosa" → **Promo 1 – Combo Taquero**.
+- ✅ Si el lector confunde "#" con "4" ("4154"), se recupera 154 comparando con la barra superior "#154 - 237…".
+- ✅ El cliente ya no se toma del correo de facturación ("…@invoices.pedidosya.com").
+- ✅ "gaseosa" ya no se confunde con Soda 1 Litro dentro de un combo; "carne" = "res".
+- ✅ El campo vacío de número de orden ya no muestra "148" de ejemplo.
+- ✅ #148 (real), variantes 15 min y 5 productos: siguen correctas.

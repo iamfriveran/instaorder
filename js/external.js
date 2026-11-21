@@ -186,15 +186,15 @@ function renderForm() {
     ${d.warnings?.length ? `<div class="x-warn"><b>⚠️ Revisa:</b><ul>${d.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}
     <div class="x-grid">
       <label>Plataforma<select class="field" data-x="platform">${Object.values(PLATFORMS).map((p) => `<option value="${p.id}" ${d.platform === p.id ? "selected" : ""}>${p.label}</option>`).join("")}</select></label>
-      <label>Orden #<input class="field x-big ${d.platformOrderNumber ? "" : "x-missing"}" data-x="platformOrderNumber" inputmode="numeric" value="${esc(d.platformOrderNumber)}" placeholder="148"></label>
-      <label class="x-wide">Cliente<input class="field" data-x="customerName" value="${esc(d.customerName)}" placeholder="Nombre del cliente" maxlength="80"></label>
+      <label>Orden #<input class="field x-big ${d.platformOrderNumber ? "" : "x-missing"}" data-x="platformOrderNumber" inputmode="numeric" autocomplete="off" value="${esc(d.platformOrderNumber)}" placeholder="Escribe el número"></label>
+      <label class="x-wide">Cliente<input class="field" data-x="customerName" autocomplete="off" value="${esc(d.customerName)}" placeholder="Nombre del cliente" maxlength="80"></label>
     </div>
     <div class="x-time ${missingMin ? "x-missing-box" : ""}">
       <div class="x-time-col">
         <span class="x-lbl">TIEMPO ASIGNADO EN PEDIDOSYA</span>
         <div class="x-stepper">
           <button class="qbtn minus" data-action="x-min" data-d="-1" aria-label="Menos un minuto">−</button>
-          <input class="field x-min" data-x="preparationMinutes" inputmode="numeric" value="${d.preparationMinutes ?? ""}" placeholder="?">
+          <input class="field x-min" data-x="preparationMinutes" inputmode="numeric" autocomplete="off" value="${d.preparationMinutes ?? ""}" placeholder="?">
           <button class="qbtn plus" data-action="x-min" data-d="1" aria-label="Más un minuto">+</button>
           <span class="x-unit">MIN</span>
         </div>

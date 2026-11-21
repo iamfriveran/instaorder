@@ -86,9 +86,10 @@ export function norm(s) {
 }
 
 const STOP = new Set(["de", "del", "con", "al", "la", "el", "los", "las", "y", "en", "a", "por", "para", "un", "una", "x"]);
+/** Sinónimos usados en PedidosYa ↔ catálogo de Takolandia. */
 const SYN = {
-  gaseosa: ["coca", "cola", "soda", "gaseosa"], cocacola: ["coca", "cola"], coca: ["coca", "cola"],
-  carne: [], res: ["res"], refresco: ["coca", "cola", "soda"], agua: ["agua"],
+  gaseosa: ["coca", "cola", "soda"], refresco: ["coca", "cola", "soda"], cocacola: ["coca", "cola"],
+  carne: ["res"], res: ["carne"],
 };
 
 /** Palabras significativas (sin acentos, sin plurales simples). */
@@ -100,9 +101,14 @@ export function tokens(s) {
     if (t.length < 2) continue;
     if (t.length > 4 && t.endsWith("s") && !t.endsWith("ss")) t = t.slice(0, -1);
     out.add(t);
-    for (const x of SYN[t] || []) out.add(x);
   }
   return out;
+}
+
+/** El token o cualquiera de sus sinónimos está en el conjunto. */
+function hasSyn(set, t) {
+  if (has(set, t)) return true;
+  return (SYN[t] || []).some((x) => set.has(x));
 }
 
 function lev(a, b) {
@@ -141,10 +147,13 @@ export function matchProduct(text, catalog) {
     const descT = tokens(p.description || "");
     const all = new Set([...nameT, ...descT]);
     let cover = 0;
-    for (const t of q) if (has(all, t)) cover++;
+    for (const t of q) if (hasSyn(all, t)) cover++;
     const ocrCov = cover / q.size;
-    const recall = (set) => { if (!set.size) return 0; let n = 0; for (const t of set) if (has(q, t)) n++; return n / set.size; };
-    const score = 0.65 * ocrCov + 0.35 * Math.max(recall(nameT), recall(descT));
+    const recall = (set) => { if (!set.size) return 0; let n = 0; for (const t of set) if (hasSyn(q, t)) n++; return n / set.size; };
+    let score = 0.65 * ocrCov + 0.35 * Math.max(recall(nameT), recall(descT));
+    // Un texto con "+" es un combo: favorece promociones/bandejas frente a productos sueltos.
+    if (/\+/.test(text) && (p.categoryId === "promociones" || p.categoryId === "bandejas")) score += 0.1;
+    score = Math.min(1, score);
     if (score > 0.2) res.push({ product: p, score });
   }
   return res.sort((a, b) => b.score - a.score).slice(0, 5);
@@ -170,26 +179,46 @@ function findPrepMinutes(ocr, H) {
     const cands = nums.filter((n) => Math.abs(cx(n.bbox) - cx(minu.bbox)) < Math.max(wdt, 60) * 1.5
       && n.bbox.y1 <= minu.bbox.y0 + h && minu.bbox.y0 - n.bbox.y1 < h * 5)
       .sort((a, b) => (minu.bbox.y0 - a.bbox.y1) - (minu.bbox.y0 - b.bbox.y1));
-    if (cands[0]) return { value: Number(cands[0].text), conf: cands[0].conf, method: "control" };
+    if (cands[0]) {
+      const c = cands[0].bbox;
+      const line = ocr.lines.find((l) => c.y0 >= l.bbox.y0 - 5 && c.y1 <= l.bbox.y1 + 5);
+      return { value: Number(cands[0].text), conf: cands[0].conf, method: "control", line };
+    }
   }
   // Respaldo: patrón "− 11 +" en una línea superior.
   for (const l of ocr.lines) {
     if (H && l.bbox.y0 > top) continue;
     const m = l.text.match(/[-–—−]\s*(\d{1,3})\s*[+4t]\s*$/);
-    if (m) return { value: Number(m[1]), conf: l.conf, method: "pattern" };
+    if (m) return { value: Number(m[1]), conf: l.conf, method: "pattern", line: l };
   }
   return null;
 }
 
-function findOrderNumber(ocr, H) {
+/**
+ * Número de orden. Fuentes, en orden de confianza:
+ *  1. palabra "#154" en la tarjeta superior;
+ *  2. "#154" en cualquier línea superior (incluida la barra "#154 - 237…");
+ *  3. el modelo a veces lee "#" como "4" o "$": "4154" en la MISMA línea que el
+ *     control de minutos, o "$+154-" en la barra superior → 154 (se pide verificar).
+ */
+function findOrderNumber(ocr, H, minutesLine) {
   const top = H ? H * 0.45 : Infinity;
   const w = ocr.words.find((x) => /^#\d{1,6}$/.test(x.text) && x.bbox.y0 < top);
-  if (w) return { value: w.text.slice(1), conf: w.conf };
+  if (w) return { value: w.text.slice(1), sure: true };
   for (const l of ocr.lines) {
     if (H && l.bbox.y0 > top) continue;
     const m = l.text.match(/#\s?(\d{1,6})\b/);
-    if (m) return { value: m[1], conf: l.conf };
+    if (m) return { value: m[1], sure: true };
   }
+  const header = ocr.lines.slice(0, 4).map((l) => l.text.match(/[$#S]\s*\+?\s*(\d{2,6})\s*-/)).find(Boolean);
+  if (minutesLine) {
+    const m = minutesLine.text.match(/^\W{0,2}4(\d{2,5})\b/);
+    if (m) {
+      const agree = header && header[1] === m[1];
+      return { value: m[1], sure: !!agree };
+    }
+  }
+  if (header) return { value: header[1], sure: false };
   return null;
 }
 
@@ -197,18 +226,25 @@ function titleCase(s) {
   return s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 }
 
-function findCustomer(ocr) {
-  const i = ocr.lines.findIndex((l) => /^\W{0,3}\s*cliente\s*:?\s*$/i.test(l.text));
+const BAD_NAME = /@|pedidosya|invoices|\d{3,}|repartidor|facturar/i;
+
+function findCustomer(ocr, H) {
+  // Etiqueta "Cliente" (puede venir con un ícono leído como letra: "a Cliente").
+  const idx = ocr.lines.findIndex((l) => /^.{0,3}\bcliente\s*:?\s*$/i.test(l.text) && (!H || l.bbox.y0 < H * 0.6));
   let name = "";
-  if (i >= 0 && ocr.lines[i + 1]) name = ocr.lines[i + 1].text.replace(/^[^A-Za-zÁÉÍÓÚÑáéíóúñ]+/, "").trim();
+  if (idx >= 0 && ocr.lines[idx + 1]) {
+    // Quita el ícono leído como "5 " o ">. " al inicio.
+    name = ocr.lines[idx + 1].text.replace(/^(?:[^A-Za-zÁÉÍÓÚÑáéíóúñ]+|[A-Za-z]\W\s)+/, "").trim();
+    if (BAD_NAME.test(name)) name = "";
+  }
   const masked = !name || /x{2,}/i.test(name);
   if (masked) {
     for (const l of ocr.lines) {
-      const m = l.text.match(/Facturar a (?:empresa|nombre de|cliente)?\s*:?\s*(.+?)\s*(?:[-–|]\s*)?$/i);
-      if (m && m[1].length > 2) return { value: titleCase(m[1].replace(/[-–|]+$/, "").trim()), source: "facturación" };
+      const m = l.text.match(/Facturar a (?:empresa|nombre de|cliente)?\s*:?\s*(.+?)\s*(?:[-–|].*)?$/i);
+      if (m && m[1].length > 2 && !BAD_NAME.test(m[1])) return { value: titleCase(m[1].trim()), source: "facturación", idx };
     }
   }
-  return name ? { value: masked ? name : titleCase(name), source: "cliente", masked } : null;
+  return name ? { value: masked ? name : titleCase(name), source: "cliente", masked, idx } : null;
 }
 
 /** Texto de una línea sin la columna de precios (a la derecha de la captura). */
@@ -281,18 +317,18 @@ export function parsePedidosYa(raw, catalog) {
   const isPY = /pedidos\s?ya|pedidosya/i.test(all) || /\dP[o0]r\b/i.test(all);
   if (!isPY) warnings.push("La captura no parece de PedidosYa: confirma la plataforma.");
 
-  const num = findOrderNumber(ocr, H);
-  if (!num) warnings.push("No se reconoció el NÚMERO DE ORDEN (#…). Escríbelo.");
-
   const min = findPrepMinutes(ocr, H);
+  const num = findOrderNumber(ocr, H, min?.line);
+  if (!num) warnings.push("No se reconoció el NÚMERO DE ORDEN (#…). Escríbelo.");
+  else if (!num.sure) warnings.push(`Verifica el NÚMERO DE ORDEN: se leyó #${num.value}.`);
   if (!min) warnings.push("No se reconoció el TIEMPO DE PREPARACIÓN (el número entre − y +). Escríbelo.");
   else if (min.value < 1 || min.value > 180) warnings.push(`El tiempo leído (${min.value} min) parece incorrecto. Verifícalo.`);
 
-  const cust = findCustomer(ocr);
+  const cust = findCustomer(ocr, H);
   if (!cust) warnings.push("No se reconoció el nombre del cliente.");
   else if (cust.masked) warnings.push("El nombre del cliente aparece oculto en la captura.");
 
-  const custIdx = ocr.lines.findIndex((l) => /cliente/i.test(l.text));
+  const custIdx = cust?.idx ?? ocr.lines.findIndex((l) => /cliente/i.test(l.text));
   const items = findItems(ocr, catalog, custIdx);
   if (!items.length) warnings.push("No se reconocieron productos. Agrégalos manualmente.");
   items.forEach((it) => {
@@ -307,6 +343,6 @@ export function parsePedidosYa(raw, catalog) {
     preparationMinutes: min && min.value >= 1 && min.value <= 180 ? min.value : null,
     items,
     warnings,
-    found: { orderNumber: !!num, minutes: !!min, customer: !!cust, minutesMethod: min?.method || null },
+    found: { orderNumber: !!num, orderNumberSure: !!num?.sure, minutes: !!min, customer: !!cust, minutesMethod: min?.method || null },
   };
 }
