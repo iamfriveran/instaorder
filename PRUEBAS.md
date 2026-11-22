@@ -94,3 +94,24 @@ Pendiente en real: probar con varias capturas reales de PedidosYa (distintos pro
 - ✅ "gaseosa" ya no se confunde con Soda 1 Litro dentro de un combo; "carne" = "res".
 - ✅ El campo vacío de número de orden ya no muestra "148" de ejemplo.
 - ✅ #148 (real), variantes 15 min y 5 productos: siguen correctas.
+
+## v1.4.0 — Disponibilidad de ingredientes (22-nov-2026, modo demo con 2 teléfonos + tablet)
+| # | Prueba | Resultado |
+|---|---|---|
+| 1 | RES agotada | ✅ los 23 productos con res obligatoria bloqueados (tacos, quesadillas, burritos, chimichangas, nachos, fajitas, doritos, flautas, Promo 1 y 2) |
+| 2 | Mensaje | ✅ "🔴 Producto no disponible · Agotado: Res" |
+| 3 | Selección | ✅ botón + deshabilitado; tocar el producto no lo agrega |
+| 4 | POLLO agotado | ✅ productos de pollo y Promo 3 (res/pollo) bloqueados |
+| 5 | Independientes | ✅ pollo/cerdo siguen disponibles con res agotada |
+| 6 | A elección | ✅ Bandejas siguen disponibles "Sin Res: elige otra opción" |
+| 7 | Restaurar | ✅ todo vuelve a estar disponible al instante |
+| 8 | Sincronización | ✅ el segundo teléfono se actualizó sin recargar |
+| 9 | Carrito abierto | ✅ "NO SE PUEDE ENVIAR EL PEDIDO", no se envió; al quitar el producto se envió bien |
+| 10 | Pedido externo aceptado | ✅ no se modificó |
+| 11 | Historial | ✅ ninguna orden previa cambió |
+| 12 | Actualización | ✅ caché nueva, datos intactos; el estado vive en Firebase |
+| — | Opcional (guacamole) | ✅ Taco Al Pastor se vende con nota "SIN GUACAMOLE (agotado)"; Promo 1 (lleva guacamole) bloqueada |
+| — | Registro | ✅ 6 cambios registrados con hora y persona |
+| — | Regresión | ✅ 37/37, bebidas, usuarios, pedidos externos |
+
+Pendiente en real: publicar las reglas y probar con la tablet y los teléfonos del restaurante.

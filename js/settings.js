@@ -18,6 +18,7 @@ import { IS_DEMO, AUTH_MODE } from "../firebase-config.js";
 import { DEFAULT_CATALOG } from "../catalog.js";
 import { state, DEFAULT_SETTINGS, normalizeCatalog, logoSrc, can } from "./state.js";
 import { authErrorText, normUser } from "./auth.js";
+import { composition, editComposition, ingName } from "./availability.js";
 import { go } from "./router.js";
 import { appHeader, demoNotice, CONN_LABELS } from "./components.js";
 import { getPrefs, setPrefs, pinUnlocked, setPinUnlocked, deviceId, getOutbox } from "./store.js";
@@ -206,6 +207,8 @@ function catalogTab() {
         <input class="field narrow" data-prod="referencePrice" data-i="${i}" type="number" step="0.01" min="0" inputmode="decimal" value="${p.referencePrice ?? ""}" aria-label="Precio referencial">
         <select class="field narrow" data-prod="categoryId" data-i="${i}" aria-label="Categoría">${c.categories.map((k) => `<option value="${esc(k.id)}" ${k.id === p.categoryId ? "selected" : ""}>${esc(k.name)}</option>`).join("")}</select>
         <label class="mini-toggle"><input type="checkbox" data-prod-active="${i}" ${p.active !== false ? "checked" : ""}> Activo</label>
+        <button class="btn btn-ghost btn-sm" data-action="prod-ing" data-i="${i}">🧩 Ingredientes</button>
+        <div class="comp-sum">${compSummary(p)}</div>
         <input class="field prod-desc" data-prod="description" data-i="${i}" value="${esc(p.description || "")}"
           placeholder="Descripción para cocina (ej.: Tortilla de maíz, carne de res, guacamole, cebolla y limón)" aria-label="Descripción">
       </div>`;
@@ -389,6 +392,14 @@ async function changeMyPassword() {
   b.disabled = false;
 }
 
+function compSummary(p) {
+  const c = composition(p);
+  const req = c.ingredients.filter((x) => x !== "ninguno").map((e) => String(e).split("|").map(ingName).join(" o "));
+  const opt = c.optional.filter((x) => x !== "ninguno").map(ingName);
+  if (!req.length && !opt.length) return `<span class="muted">Sin ingredientes controlados (siempre disponible)</span>`;
+  return `${req.length ? `<b>Obligatorios:</b> ${esc(req.join(", "))}` : ""}${opt.length ? ` · <b>Opcionales:</b> ${esc(opt.join(", "))}` : ""}`;
+}
+
 /* ---------- Sistema ---------- */
 
 function systemTab() {
@@ -496,6 +507,16 @@ async function onClick(e) {
       if (await confirmDialog("Eliminar", `¿Eliminar a "${w.name || "(sin nombre)"}" de la lista? Sus órdenes anteriores no se modifican. (También puedes sólo desactivarlo.)`, "Eliminar", "danger")) {
         work.settings[b.dataset.key].splice(i, 1); markDirty(); render();
       }
+      break;
+    }
+    case "prod-ing": {
+      const prod = work.catalog.products[i];
+      const res = await editComposition(prod);
+      if (!res) break;
+      // Firebase no guarda listas vacías: "ninguno" marca "sin ingredientes" a propósito.
+      prod.ingredients = res.ingredients.length ? res.ingredients : ["ninguno"];
+      prod.optional = res.optional.length ? res.optional : ["ninguno"];
+      markDirty(); render();
       break;
     }
     case "cat-pick": work.catFilter = b.dataset.id; render(); break;

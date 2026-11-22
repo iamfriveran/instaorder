@@ -270,6 +270,23 @@
           ".validate": "newData.hasChild('name')"
         }
       }
+    },
+    "ingredients": {
+      ".read": "(auth != null && root.child('users/' + auth.uid).child('active').val() === true)",
+      "$id": {
+        ".write": "(auth != null && root.child('users/' + auth.uid).child('active').val() === true && (root.child('users/' + auth.uid).child('roles/kitchen').val() === true || root.child('users/' + auth.uid).child('roles/admin').val() === true)) && newData.exists()",
+        ".validate": "newData.hasChildren(['name','available']) && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('available').isBoolean()"
+      }
+    },
+    "ingredientLog": {
+      ".read": "(auth != null && root.child('users/' + auth.uid).child('active').val() === true)",
+      ".indexOn": [
+        "dayKey"
+      ],
+      "$k": {
+        ".write": "(auth != null && root.child('users/' + auth.uid).child('active').val() === true && (root.child('users/' + auth.uid).child('roles/kitchen').val() === true || root.child('users/' + auth.uid).child('roles/admin').val() === true)) && !data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['ingredientId','to','at','dayKey'])"
+      }
     }
   }
 }

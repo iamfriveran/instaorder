@@ -139,6 +139,7 @@ export const KitchenScreen = {
           <span class="kc kc-acc"><b id="cnt-acc">0</b> en preparación</span>
         </div>
         <button class="chip-btn" data-action="${fixedCook ? "account" : "cook"}">👨‍🍳 ${esc(cook?.name || "Identificarse")}</button>
+        <button class="chip-btn" data-action="ingredients" id="k-ing-btn">🥫 Ingredientes</button>
         <button class="chip-btn" data-action="history">📚 Historial</button>
         <button class="chip-btn" data-action="home" aria-label="Inicio">🏠</button>`,
     })}${demoNotice()}
@@ -172,6 +173,9 @@ export const KitchenScreen = {
     reconcile($("#col-new", root), news);
     reconcile($("#col-acc", root), acc);
     $("#cnt-new", root).textContent = news.length;
+    const outIng = Object.values(state.ingredients || {}).filter((i) => i.available === false && i.deleted !== true);
+    const ib = $("#k-ing-btn", root);
+    if (ib) { ib.textContent = outIng.length ? `🔴 ${outIng.length} agotado(s)` : "🥫 Ingredientes"; ib.classList.toggle("chip-alert", outIng.length > 0); }
     $("#cnt-acc", root).textContent = acc.length;
     document.title = news.length ? `(${news.length}) NUEVAS · INSTAOrder Cocina` : "INSTAOrder · Cocina";
     $("#audio-strip", root).hidden = !getPrefs().soundEnabled || audioReady();
@@ -211,6 +215,7 @@ async function onClick(e) {
     case "home": go("inicio"); break;
     case "account": go("config/cuenta"); break;
     case "history": go("historial"); break;
+    case "ingredients": go("ingredientes"); break;
     case "unlock": unlockAudio(); setTimeout(() => KitchenScreen.update(), 200); toast("Sonido activado", "success"); break;
     case "cook": chooseCook(); break;
     case "toggle":

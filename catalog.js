@@ -9,6 +9,9 @@
  * station: "kitchen" = va a cocina · "waiter" = bebida que sirve el mesero
  *          (no se envía a cocina).
  *
+ * ingredients: ingredientes OBLIGATORIOS ("res|pollo" = a elección: basta uno disponible).
+ * optional:    ingredientes opcionales (si se agotan, el producto se vende sin ellos).
+ *
  * IMPORTANTE: referencePrice es SOLO REFERENCIAL para identificar el producto.
  * La aplicación nunca suma, multiplica ni totaliza precios.
  */
@@ -137,7 +140,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2.5,
       "active": true,
       "order": 1,
-      "description": "Tortilla de maíz, carne de res, guacamole, cebolla y limón."
+      "description": "Tortilla de maíz, carne de res, guacamole, cebolla y limón.",
+      "ingredients": [
+        "tortilla-maiz",
+        "res"
+      ],
+      "optional": [
+        "guacamole",
+        "cebolla",
+        "limon"
+      ]
     },
     {
       "id": "p-taco-pollo",
@@ -146,7 +158,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2.5,
       "active": true,
       "order": 2,
-      "description": "Tortilla de maíz, pechuga de pollo, guacamole, cebolla y limón."
+      "description": "Tortilla de maíz, pechuga de pollo, guacamole, cebolla y limón.",
+      "ingredients": [
+        "tortilla-maiz",
+        "pollo"
+      ],
+      "optional": [
+        "guacamole",
+        "cebolla",
+        "limon"
+      ]
     },
     {
       "id": "p-taco-al-pastor",
@@ -155,7 +176,17 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2.5,
       "active": true,
       "order": 3,
-      "description": "Tortilla de maíz, carne de cerdo, piña, guacamole, cebolla y limón."
+      "description": "Tortilla de maíz, carne de cerdo, piña, guacamole, cebolla y limón.",
+      "ingredients": [
+        "tortilla-maiz",
+        "pastor"
+      ],
+      "optional": [
+        "guacamole",
+        "cebolla",
+        "limon",
+        "pina"
+      ]
     },
     {
       "id": "p-taco-birria",
@@ -164,7 +195,15 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2.75,
       "active": true,
       "order": 4,
-      "description": "Tortilla de maíz, carne de res desmechada en salsa picante, guacamole y cebolla."
+      "description": "Tortilla de maíz, carne de res desmechada en salsa picante, guacamole y cebolla.",
+      "ingredients": [
+        "tortilla-maiz",
+        "birria"
+      ],
+      "optional": [
+        "guacamole",
+        "cebolla"
+      ]
     },
     {
       "id": "p-taco-campechano",
@@ -173,7 +212,17 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2.5,
       "active": true,
       "order": 5,
-      "description": "Tortilla de maíz, carne de res, chorizo, guacamole, cebolla y limón."
+      "description": "Tortilla de maíz, carne de res, chorizo, guacamole, cebolla y limón.",
+      "ingredients": [
+        "tortilla-maiz",
+        "res",
+        "chorizo"
+      ],
+      "optional": [
+        "guacamole",
+        "cebolla",
+        "limon"
+      ]
     },
     {
       "id": "p-taco-full",
@@ -182,7 +231,19 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3,
       "active": true,
       "order": 6,
-      "description": "Todas las carnes: res, cerdo, pollo, chorizo, guacamole, cebolla y limón."
+      "description": "Todas las carnes: res, cerdo, pollo, chorizo, guacamole, cebolla y limón.",
+      "ingredients": [
+        "tortilla-maiz",
+        "res",
+        "pollo",
+        "cerdo",
+        "chorizo"
+      ],
+      "optional": [
+        "guacamole",
+        "cebolla",
+        "limon"
+      ]
     },
     {
       "id": "p-quesadilla-queso",
@@ -191,7 +252,15 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2.75,
       "active": true,
       "order": 7,
-      "description": "Tortilla de trigo, queso, guacamole, pico de gallo."
+      "description": "Tortilla de trigo, queso, guacamole, pico de gallo.",
+      "ingredients": [
+        "tortilla-trigo",
+        "queso"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-quesadilla-res",
@@ -200,7 +269,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 8,
-      "description": "Tortilla de trigo, queso, carne de res, guacamole, pico de gallo."
+      "description": "Tortilla de trigo, queso, carne de res, guacamole, pico de gallo.",
+      "ingredients": [
+        "tortilla-trigo",
+        "queso",
+        "res"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-quesadilla-pollo",
@@ -209,7 +287,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 9,
-      "description": "Tortilla de trigo, queso, pechuga de pollo, guacamole, pico de gallo."
+      "description": "Tortilla de trigo, queso, pechuga de pollo, guacamole, pico de gallo.",
+      "ingredients": [
+        "tortilla-trigo",
+        "queso",
+        "pollo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-quesadilla-pastor",
@@ -218,7 +305,17 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 10,
-      "description": "Tortilla de trigo, queso, carne de cerdo, piña, guacamole, pico de gallo."
+      "description": "Tortilla de trigo, queso, carne de cerdo, piña, guacamole, pico de gallo.",
+      "ingredients": [
+        "tortilla-trigo",
+        "queso",
+        "pastor"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "pina"
+      ]
     },
     {
       "id": "p-quesadilla-campechano",
@@ -227,7 +324,17 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 11,
-      "description": "Tortilla de trigo, queso, carne de res, chorizo, guacamole, pico de gallo."
+      "description": "Tortilla de trigo, queso, carne de res, chorizo, guacamole, pico de gallo.",
+      "ingredients": [
+        "tortilla-trigo",
+        "queso",
+        "res",
+        "chorizo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-quesadilla-full",
@@ -236,7 +343,19 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4,
       "active": true,
       "order": 12,
-      "description": "Tortilla de trigo, queso, todas las carnes, chorizo, guacamole, pico de gallo."
+      "description": "Tortilla de trigo, queso, todas las carnes, chorizo, guacamole, pico de gallo.",
+      "ingredients": [
+        "tortilla-trigo",
+        "queso",
+        "res",
+        "pollo",
+        "cerdo",
+        "chorizo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-quesadilla-birria",
@@ -245,7 +364,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.75,
       "active": true,
       "order": 13,
-      "description": "Tortilla de trigo, queso, carne de res desmechada, guacamole, pico de gallo."
+      "description": "Tortilla de trigo, queso, carne de res desmechada, guacamole, pico de gallo.",
+      "ingredients": [
+        "tortilla-trigo",
+        "queso",
+        "birria"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-burrito-clasico-res",
@@ -254,7 +382,18 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 14,
-      "description": "Tortilla de maíz, frejol, res. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria."
+      "description": "Tortilla de maíz, frejol, res. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "tortilla-maiz",
+        "frejol",
+        "res"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria"
+      ]
     },
     {
       "id": "p-burrito-clasico-pollo",
@@ -263,7 +402,18 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 15,
-      "description": "Tortilla de maíz, frejol, pollo. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria."
+      "description": "Tortilla de maíz, frejol, pollo. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "tortilla-maiz",
+        "frejol",
+        "pollo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria"
+      ]
     },
     {
       "id": "p-burrito-clasico-pastor",
@@ -272,7 +422,19 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 16,
-      "description": "Tortilla de maíz, frejol, cerdo, piña. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria."
+      "description": "Tortilla de maíz, frejol, cerdo, piña. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "tortilla-maiz",
+        "frejol",
+        "pastor"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria",
+        "pina"
+      ]
     },
     {
       "id": "p-burrito-gratinado-res",
@@ -281,7 +443,18 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.5,
       "active": true,
       "order": 17,
-      "description": "Frejol, res, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria."
+      "description": "Frejol, res, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "frejol",
+        "res",
+        "queso"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria"
+      ]
     },
     {
       "id": "p-burrito-gratinado-pollo",
@@ -290,7 +463,18 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.5,
       "active": true,
       "order": 18,
-      "description": "Frejol, pollo, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria."
+      "description": "Frejol, pollo, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "frejol",
+        "pollo",
+        "queso"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria"
+      ]
     },
     {
       "id": "p-burrito-gratinado-pastor",
@@ -299,7 +483,19 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.5,
       "active": true,
       "order": 19,
-      "description": "Frejol, cerdo, piña, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria."
+      "description": "Frejol, cerdo, piña, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "frejol",
+        "pastor",
+        "queso"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria",
+        "pina"
+      ]
     },
     {
       "id": "p-burrito-birria",
@@ -308,7 +504,17 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.75,
       "active": true,
       "order": 20,
-      "description": "Frejol, guacamole, pico de gallo, carne de res desmechada, salsa cheddar y salsa agria."
+      "description": "Frejol, guacamole, pico de gallo, carne de res desmechada, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "frejol",
+        "birria"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria"
+      ]
     },
     {
       "id": "p-chimichanga-res",
@@ -317,7 +523,19 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.25,
       "active": true,
       "order": 21,
-      "description": "Tortilla de maíz frita con frejol, res. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria."
+      "description": "Tortilla de maíz frita con frejol, res. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "tortilla-maiz",
+        "frejol",
+        "res"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria",
+        "queso"
+      ]
     },
     {
       "id": "p-chimichanga-pollo",
@@ -326,7 +544,19 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.25,
       "active": true,
       "order": 22,
-      "description": "Tortilla de maíz frita con frejol, pollo. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria."
+      "description": "Tortilla de maíz frita con frejol, pollo. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "tortilla-maiz",
+        "frejol",
+        "pollo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria",
+        "queso"
+      ]
     },
     {
       "id": "p-chimichanga-cerdo",
@@ -335,7 +565,19 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.25,
       "active": true,
       "order": 23,
-      "description": "Tortilla de maíz frita con frejol, cerdo. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria."
+      "description": "Tortilla de maíz frita con frejol, cerdo. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria.",
+      "ingredients": [
+        "tortilla-maiz",
+        "frejol",
+        "cerdo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "salsa-cheddar",
+        "salsa-agria",
+        "queso"
+      ]
     },
     {
       "id": "p-nachos-queso",
@@ -344,7 +586,11 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2.5,
       "active": true,
       "order": 24,
-      "description": "Nachos y queso."
+      "description": "Nachos y queso.",
+      "ingredients": [
+        "nachos",
+        "queso"
+      ]
     },
     {
       "id": "p-nachos-pastor",
@@ -353,7 +599,17 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 25,
-      "description": "Nachos, queso, cerdo, piña, guacamole y pico de gallo."
+      "description": "Nachos, queso, cerdo, piña, guacamole y pico de gallo.",
+      "ingredients": [
+        "nachos",
+        "queso",
+        "pastor"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "pina"
+      ]
     },
     {
       "id": "p-nachos-pollo",
@@ -362,7 +618,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 26,
-      "description": "Nachos, queso, pollo, guacamole y pico de gallo."
+      "description": "Nachos, queso, pollo, guacamole y pico de gallo.",
+      "ingredients": [
+        "nachos",
+        "queso",
+        "pollo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-nachos-carne-de-res",
@@ -371,7 +636,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 27,
-      "description": "Nachos, queso, res, guacamole y pico de gallo."
+      "description": "Nachos, queso, res, guacamole y pico de gallo.",
+      "ingredients": [
+        "nachos",
+        "queso",
+        "res"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-nachos-campechano",
@@ -380,7 +654,17 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 28,
-      "description": "Nachos, queso, res, chorizo, guacamole y pico de gallo."
+      "description": "Nachos, queso, res, chorizo, guacamole y pico de gallo.",
+      "ingredients": [
+        "nachos",
+        "queso",
+        "res",
+        "chorizo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-nachos-full",
@@ -389,7 +673,19 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.5,
       "active": true,
       "order": 29,
-      "description": "Nachos, queso, todas las carnes, chorizo, guacamole y pico de gallo."
+      "description": "Nachos, queso, todas las carnes, chorizo, guacamole y pico de gallo.",
+      "ingredients": [
+        "nachos",
+        "queso",
+        "res",
+        "pollo",
+        "cerdo",
+        "chorizo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo"
+      ]
     },
     {
       "id": "p-nachos-chilli-beans",
@@ -398,7 +694,18 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 5.5,
       "active": true,
       "order": 30,
-      "description": "Nachos, frejol, res, queso, guacamole, pico de gallo y jalapeño."
+      "description": "Nachos, frejol, res, queso, guacamole, pico de gallo y jalapeño.",
+      "ingredients": [
+        "nachos",
+        "queso",
+        "frejol",
+        "res"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "jalapeno"
+      ]
     },
     {
       "id": "p-nachos-bell-grande",
@@ -407,7 +714,20 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 5.75,
       "active": true,
       "order": 31,
-      "description": "Nachos, frejol, todas las carnes, queso, guacamole, pico de gallo y jalapeño."
+      "description": "Nachos, frejol, todas las carnes, queso, guacamole, pico de gallo y jalapeño.",
+      "ingredients": [
+        "nachos",
+        "queso",
+        "frejol",
+        "res",
+        "pollo",
+        "cerdo"
+      ],
+      "optional": [
+        "guacamole",
+        "pico-gallo",
+        "jalapeno"
+      ]
     },
     {
       "id": "p-taco-bowl",
@@ -416,7 +736,19 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.5,
       "active": true,
       "order": 32,
-      "description": "Nachos, frejol, todas las carnes, queso, guacamole, salsa agria."
+      "description": "Nachos, frejol, todas las carnes, queso, guacamole, salsa agria.",
+      "ingredients": [
+        "nachos",
+        "queso",
+        "frejol",
+        "res",
+        "pollo",
+        "cerdo"
+      ],
+      "optional": [
+        "guacamole",
+        "salsa-agria"
+      ]
     },
     {
       "id": "p-fajita-pollo",
@@ -425,7 +757,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 9,
       "active": true,
       "order": 33,
-      "description": "Salteado de verduras, fajitas de pollo a la plancha, guacamole y frejol. Incluye arroz o tortillas."
+      "description": "Salteado de verduras, fajitas de pollo a la plancha, guacamole y frejol. Incluye arroz o tortillas.",
+      "ingredients": [
+        "verduras",
+        "pollo",
+        "arroz|tortillas"
+      ],
+      "optional": [
+        "guacamole",
+        "frejol"
+      ]
     },
     {
       "id": "p-fajita-carne-de-res",
@@ -434,7 +775,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 9.5,
       "active": true,
       "order": 34,
-      "description": "Salteado de verduras, fajitas de res a la plancha, guacamole y frejol. Incluye arroz o tortillas."
+      "description": "Salteado de verduras, fajitas de res a la plancha, guacamole y frejol. Incluye arroz o tortillas.",
+      "ingredients": [
+        "verduras",
+        "res",
+        "arroz|tortillas"
+      ],
+      "optional": [
+        "guacamole",
+        "frejol"
+      ]
     },
     {
       "id": "p-fajita-trio",
@@ -443,7 +793,18 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 13,
       "active": true,
       "order": 35,
-      "description": "Salteado de verduras, fajitas de res y pollo a la plancha, camarones, guacamole y frejol. Incluye arroz o tortillas."
+      "description": "Salteado de verduras, fajitas de res y pollo a la plancha, camarones, guacamole y frejol. Incluye arroz o tortillas.",
+      "ingredients": [
+        "verduras",
+        "res",
+        "pollo",
+        "camaron",
+        "arroz|tortillas"
+      ],
+      "optional": [
+        "guacamole",
+        "frejol"
+      ]
     },
     {
       "id": "p-doritos-limon-res",
@@ -452,7 +813,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 36,
-      "description": "Doritos de limón, res y queso."
+      "description": "Doritos de limón, res y queso.",
+      "ingredients": [
+        "doritos-limon",
+        "res",
+        "queso"
+      ]
     },
     {
       "id": "p-doritos-limon-cerdo",
@@ -461,7 +827,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 37,
-      "description": "Doritos de limón, cerdo y queso."
+      "description": "Doritos de limón, cerdo y queso.",
+      "ingredients": [
+        "doritos-limon",
+        "cerdo",
+        "queso"
+      ]
     },
     {
       "id": "p-doritos-limon-pollo",
@@ -470,7 +841,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 38,
-      "description": "Doritos de limón, pollo y queso."
+      "description": "Doritos de limón, pollo y queso.",
+      "ingredients": [
+        "doritos-limon",
+        "pollo",
+        "queso"
+      ]
     },
     {
       "id": "p-doritos-hot-res",
@@ -479,7 +855,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 39,
-      "description": "Doritos picantes, res y queso."
+      "description": "Doritos picantes, res y queso.",
+      "ingredients": [
+        "doritos-hot",
+        "res",
+        "queso"
+      ]
     },
     {
       "id": "p-doritos-hot-pollo",
@@ -488,7 +869,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 40,
-      "description": "Doritos picantes, pollo y queso."
+      "description": "Doritos picantes, pollo y queso.",
+      "ingredients": [
+        "doritos-hot",
+        "pollo",
+        "queso"
+      ]
     },
     {
       "id": "p-doritos-hot-cerdo",
@@ -497,7 +883,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 41,
-      "description": "Doritos picantes, cerdo y queso."
+      "description": "Doritos picantes, cerdo y queso.",
+      "ingredients": [
+        "doritos-hot",
+        "cerdo",
+        "queso"
+      ]
     },
     {
       "id": "p-doritos-normal-res",
@@ -506,7 +897,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 42,
-      "description": "Doritos sabor natural, res y queso."
+      "description": "Doritos sabor natural, res y queso.",
+      "ingredients": [
+        "doritos-normal",
+        "res",
+        "queso"
+      ]
     },
     {
       "id": "p-doritos-normal-pollo",
@@ -515,7 +911,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 43,
-      "description": "Doritos sabor natural, pollo y queso."
+      "description": "Doritos sabor natural, pollo y queso.",
+      "ingredients": [
+        "doritos-normal",
+        "pollo",
+        "queso"
+      ]
     },
     {
       "id": "p-doritos-normal-cerdo",
@@ -524,7 +925,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 3.75,
       "active": true,
       "order": 44,
-      "description": "Doritos sabor natural, cerdo y queso."
+      "description": "Doritos sabor natural, cerdo y queso.",
+      "ingredients": [
+        "doritos-normal",
+        "cerdo",
+        "queso"
+      ]
     },
     {
       "id": "p-flauta-de-res",
@@ -533,7 +939,17 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 5.5,
       "active": true,
       "order": 45,
-      "description": "Tortilla frita de maíz con queso, res, lechuga, pico de gallo y guacamole."
+      "description": "Tortilla frita de maíz con queso, res, lechuga, pico de gallo y guacamole.",
+      "ingredients": [
+        "tortilla-maiz",
+        "queso",
+        "res"
+      ],
+      "optional": [
+        "lechuga",
+        "pico-gallo",
+        "guacamole"
+      ]
     },
     {
       "id": "p-flauta-de-pollo",
@@ -542,7 +958,17 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 5.5,
       "active": true,
       "order": 46,
-      "description": "Tortilla frita de maíz con queso, pollo, lechuga, pico de gallo y guacamole."
+      "description": "Tortilla frita de maíz con queso, pollo, lechuga, pico de gallo y guacamole.",
+      "ingredients": [
+        "tortilla-maiz",
+        "queso",
+        "pollo"
+      ],
+      "optional": [
+        "lechuga",
+        "pico-gallo",
+        "guacamole"
+      ]
     },
     {
       "id": "p-flauta-de-queso",
@@ -551,7 +977,16 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.75,
       "active": true,
       "order": 47,
-      "description": "Tortilla frita de maíz con queso, lechuga, pico de gallo y guacamole."
+      "description": "Tortilla frita de maíz con queso, lechuga, pico de gallo y guacamole.",
+      "ingredients": [
+        "tortilla-maiz",
+        "queso"
+      ],
+      "optional": [
+        "lechuga",
+        "pico-gallo",
+        "guacamole"
+      ]
     },
     {
       "id": "p-bandeja-carnal",
@@ -560,7 +995,13 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 14,
       "active": true,
       "order": 48,
-      "description": "Tres tacos, dos quesadillas, proteína a elección (res, pollo o cerdo), una (1) bebida."
+      "description": "Tres tacos, dos quesadillas, proteína a elección (res, pollo o cerdo), una (1) bebida.",
+      "ingredients": [
+        "tortilla-maiz",
+        "res|pollo|cerdo",
+        "tortilla-trigo",
+        "queso"
+      ]
     },
     {
       "id": "p-bandejalandia",
@@ -569,7 +1010,12 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 10,
       "active": true,
       "order": 49,
-      "description": "Tres tacos, un burrito clásico, proteína a elección (res, pollo o cerdo), una (1) bebida."
+      "description": "Tres tacos, un burrito clásico, proteína a elección (res, pollo o cerdo), una (1) bebida.",
+      "ingredients": [
+        "tortilla-maiz",
+        "res|pollo|cerdo",
+        "frejol"
+      ]
     },
     {
       "id": "p-extra-guacamole",
@@ -578,7 +1024,10 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 1.5,
       "active": true,
       "order": 50,
-      "description": "Porción adicional de guacamole."
+      "description": "Porción adicional de guacamole.",
+      "ingredients": [
+        "guacamole"
+      ]
     },
     {
       "id": "p-extra-nachos",
@@ -587,7 +1036,10 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2,
       "active": true,
       "order": 51,
-      "description": "Porción adicional de nachos."
+      "description": "Porción adicional de nachos.",
+      "ingredients": [
+        "nachos"
+      ]
     },
     {
       "id": "p-extra-de-frejol",
@@ -596,7 +1048,10 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2,
       "active": true,
       "order": 52,
-      "description": "Porción adicional de frejol negro."
+      "description": "Porción adicional de frejol negro.",
+      "ingredients": [
+        "frejol"
+      ]
     },
     {
       "id": "p-extra-de-queso",
@@ -605,7 +1060,10 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 2,
       "active": true,
       "order": 53,
-      "description": "60g de queso mozzarella rallado."
+      "description": "60g de queso mozzarella rallado.",
+      "ingredients": [
+        "queso"
+      ]
     },
     {
       "id": "p-agua-de-jamaica",
@@ -614,7 +1072,10 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 1.25,
       "active": true,
       "order": 54,
-      "description": "Agua fresca de flor de Jamaica."
+      "description": "Agua fresca de flor de Jamaica.",
+      "ingredients": [
+        "jamaica"
+      ]
     },
     {
       "id": "p-horchata",
@@ -623,7 +1084,10 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 1.25,
       "active": true,
       "order": 55,
-      "description": "Bebida de arroz con canela."
+      "description": "Bebida de arroz con canela.",
+      "ingredients": [
+        "horchata"
+      ]
     },
     {
       "id": "p-agua-natural",
@@ -659,7 +1123,10 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 1.25,
       "active": true,
       "order": 59,
-      "description": "Coca-Cola 300ml."
+      "description": "Coca-Cola 300ml.",
+      "ingredients": [
+        "coca-cola"
+      ]
     },
     {
       "id": "p-soda-1-litro",
@@ -785,7 +1252,10 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 5.75,
       "active": true,
       "order": 73,
-      "description": "Horchata, crema de coco, leche evaporada, ron."
+      "description": "Horchata, crema de coco, leche evaporada, ron.",
+      "ingredients": [
+        "horchata"
+      ]
     },
     {
       "id": "p-margarita-jamaiquina",
@@ -848,7 +1318,10 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 5.75,
       "active": true,
       "order": 80,
-      "description": "Ron blanco, limón, hielo, Coca-Cola."
+      "description": "Ron blanco, limón, hielo, Coca-Cola.",
+      "ingredients": [
+        "coca-cola"
+      ]
     },
     {
       "id": "p-daiquiri",
@@ -912,7 +1385,13 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 4.99,
       "regularPrice": 6.5,
       "active": true,
-      "order": 87
+      "order": 87,
+      "ingredients": [
+        "tortilla-maiz",
+        "res",
+        "guacamole",
+        "coca-cola"
+      ]
     },
     {
       "id": "p-promo-2",
@@ -922,7 +1401,15 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 7.99,
       "regularPrice": 9.75,
       "active": true,
-      "order": 88
+      "order": 88,
+      "ingredients": [
+        "tortilla-maiz",
+        "frejol",
+        "res",
+        "tortilla-trigo",
+        "queso",
+        "coca-cola"
+      ]
     },
     {
       "id": "p-promo-3",
@@ -932,7 +1419,14 @@ export const DEFAULT_CATALOG = {
       "referencePrice": 13.5,
       "regularPrice": 16.5,
       "active": true,
-      "order": 89
+      "order": 89,
+      "ingredients": [
+        "frejol",
+        "queso",
+        "tortilla-maiz",
+        "res|pollo",
+        "coca-cola"
+      ]
     }
   ]
 };

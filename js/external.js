@@ -22,6 +22,7 @@ import { appHeader, demoNotice } from "./components.js";
 import { submitOrder, outboxEntries, processOutbox } from "./outbox.js";
 import { getWaiter, deviceId } from "./store.js";
 import { runOcr, parsePedidosYa, matchProduct, PLATFORMS, norm } from "./pedidosya.js";
+import { productStatus, checkItems, optionalNote } from "./availability.js";
 import { $, esc, toast, confirmDialog, dialog, fmtTime, fmtDateTime, orderTitle, orderLabel, isExternal } from "./ui.js";
 
 const DRAFT_KEY = "instaorder.extDraft";
@@ -225,6 +226,7 @@ function renderForm() {
           </button>
           <button class="icon-btn danger" data-action="x-del" data-i="${i}" aria-label="Eliminar">🗑</button>
         </div>
+        ${availHtml(it)}
         ${it.rawText ? `<div class="x-raw">Leído: “${esc(it.rawText)}”${it.productId && it.confident === false ? " · <b>verifica</b>" : ""}</div>` : ""}
         ${desc(it) ? `<div class="line-desc">${esc(desc(it))}</div>` : ""}
         <input class="field x-note" data-xi="${i}" value="${esc(it.notes || "")}" placeholder="Nota para cocina (opcional)">
@@ -235,6 +237,15 @@ function renderForm() {
       <textarea class="field" rows="2" data-x="generalNotes" placeholder="Ej.: empacar salsas aparte">${esc(d.generalNotes || "")}</textarea>
     </div>
     <p class="no-money">No se registran precios ni totales. No se guardan teléfono, correo ni datos de facturación.</p>`;
+}
+
+function availHtml(it) {
+  const p = state.catalog.products.find((x) => x.id === it.productId);
+  if (!p) return "";
+  const st = productStatus(p);
+  if (!st.available) return `<div class="line-unavail">🔴 Producto no disponible · Agotado: ${esc(st.missing.join(", ").toUpperCase())}</div>`;
+  if (st.optionalMissing.length) return `<div class="line-limited">⚠️ Se enviará ${esc(optionalNote(st.optionalMissing))}</div>`;
+  return "";
 }
 
 const desc = (it) => state.catalog.products.find((p) => p.id === it.productId)?.description || "";
@@ -303,8 +314,8 @@ function pickProduct(initial = "") {
         const direct = prods.filter((p) => words.every((w) => norm(p.name + " " + (p.description || "")).includes(w)));
         prods = [...new Map([...direct, ...scored].map((p) => [p.id, p])).values()];
       }
-      list.innerHTML = prods.slice(0, 60).map((p) => `<button class="picker-item" data-id="${esc(p.id)}">
-        <b>${esc(p.name)}</b><small>${esc(categoryById(p.categoryId)?.name || "")}${p.description ? " · " + esc(p.description) : ""}</small></button>`).join("") || `<p class="empty small">Sin resultados.</p>`;
+      list.innerHTML = prods.slice(0, 60).map((p) => `<button class="picker-item ${productStatus(p).available ? "" : "p-off"}" data-id="${esc(p.id)}">
+        <b>${esc(p.name)}${productStatus(p).available ? "" : ` <span class="p-unavail">🔴 No disponible: ${esc(productStatus(p).missing.join(", "))}</span>`}</b><small>${esc(categoryById(p.categoryId)?.name || "")}${p.description ? " · " + esc(p.description) : ""}</small></button>`).join("") || `<p class="empty small">Sin resultados.</p>`;
     };
     draw();
     input.addEventListener("input", draw);
@@ -336,6 +347,12 @@ async function send(btn) {
     `${unknown.map((i) => `• ${i.productName}`).join("\n")}\n\nSe enviarán a cocina con el texto tal como está. ¿Continuar?`, "Enviar así", "danger"))) return;
   if (!d.preparationMinutes && !d.targetReadyAt && !(await confirmDialog("Tiempo de preparación desconocido",
     "No hay minutos asignados ni hora objetivo. Cocina no verá cuenta regresiva.\n¿Enviar sin tiempo?", "Enviar sin tiempo", "danger"))) return;
+  // Disponibilidad: el pedido externo ya fue aceptado en PedidosYa, así que no se
+  // bloquea, pero se exige confirmar sabiendo qué falta.
+  const av = checkItems(d.items);
+  if (av.blocked.length && !(await confirmDialog("⚠️ Ingrediente agotado",
+    `${av.blocked.map((b) => `• ${b.productName}: agotado ${b.missing.join(", ").toUpperCase()}`).join("\n")}\n\nCocina no puede prepararlo tal cual. Cambia el producto, o envíalo y coordina con el cliente / PedidosYa.`,
+    "Enviar de todos modos", "danger"))) return;
   if (!dataService.isConnected()) return toast("Sin conexión: no se puede verificar ni enviar. El borrador queda guardado.", "error", 5000);
 
   sending = true; btn.disabled = true; btn.textContent = "Verificando…";
@@ -362,10 +379,15 @@ async function send(btn) {
     const waiter = getWaiter() || { id: dataService.uid || "", name: "Sin nombre" };
     const order = dataService.buildOrder({
       waiter, deviceId: deviceId(), generalNotes: d.generalNotes,
-      items: d.items.map((i) => ({
-        productId: i.productId || "custom", productName: i.productName, category: i.category || "",
-        quantity: i.quantity, notes: i.notes || "", referencePrice: null,
-      })),
+      items: d.items.map((i, idx) => {
+        const o = av.optional.find((x) => x.index === idx);
+        const bl = av.blocked.find((x) => x.index === idx);
+        const extra = [o ? optionalNote(o.optionalMissing) : "", bl ? `⚠️ AGOTADO ${bl.missing.join(", ").toUpperCase()}` : ""].filter(Boolean).join(" · ");
+        return {
+          productId: i.productId || "custom", productName: i.productName, category: i.category || "",
+          quantity: i.quantity, notes: [i.notes, extra].filter(Boolean).join(" · "), referencePrice: null,
+        };
+      }),
       external: {
         platform: d.platform, platformOrderNumber: num, customerName: d.customerName,
         receivedAt: d.receivedAt, preparationMinutes: d.preparationMinutes || 0,

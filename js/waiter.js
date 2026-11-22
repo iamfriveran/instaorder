@@ -25,6 +25,7 @@ import {
   getDrinks, addDrinks, removeDrinks,
 } from "./store.js";
 import { playAlert, vibrate } from "./sound.js";
+import { productStatus, checkItems, blockedDialog, optionalNote, productById } from "./availability.js";
 import {
   $, $$, esc, toast, dialog, confirmDialog, tableLabel, fmtRefPrice, fmtTime, orderLabel,
   isExternal, orderTitle, PLATFORM_LABELS,
@@ -105,7 +106,12 @@ export const WaiterScreen = {
     else if (view === "orders") renderMyOrders();
     else if (view === "builder") {
       renderTableInfo();
-      if (ui.catalogRef !== state.catalog) { ui.catalogRef = state.catalog; renderCats(); renderProducts(); }
+      if (ui.catalogRef !== state.catalog || ui.ingRef !== state.ingredients) { ui.catalogRef = state.catalog; ui.ingRef = state.ingredients; renderCats(); renderProducts(); }
+    }
+    else if (view === "summary" && ui.ingRef !== state.ingredients) {
+      ui.ingRef = state.ingredients;
+      const a = document.activeElement;
+      if (!(a && root.contains(a) && a.matches("input,textarea"))) renderLines();
     }
     else if (view === "select" ) renderSelect();
   },
@@ -228,6 +234,7 @@ function mountBuilder(table) {
   if (!ui.category || !cats.some((c) => c.id === ui.category)) ui.category = cats[0]?.id || null;
   ui.search = "";
   ui.catalogRef = state.catalog;
+  ui.ingRef = state.ingredients;
   const d = draftFor(table);
   root.innerHTML = `${waiterHeader("nav-tables")}
   <main class="screen builder">
@@ -289,17 +296,21 @@ function renderProducts() {
   el.innerHTML = prods.map((p) => {
     const qty = qtyOf(d, p.id);
     const cat = categoryById(p.categoryId);
-    return `<div class="product-card ${qty ? "has-qty" : ""}" data-pid="${esc(p.id)}">
-      <button class="p-main" data-action="add" data-pid="${esc(p.id)}">
+    const st = productStatus(p);
+    return `<div class="product-card ${qty ? "has-qty" : ""} ${st.available ? "" : "p-off"}" data-pid="${esc(p.id)}">
+      <button class="p-main" data-action="add" data-pid="${esc(p.id)}" ${st.available ? "" : 'aria-disabled="true"'}>
         <span class="p-name">${esc(p.name)}</span>
         ${p.description ? `<span class="p-desc">${esc(p.description)}</span>` : ""}
         <span class="p-meta"><span class="p-cat">${esc(cat?.icon || "")} ${esc(cat?.name || "")}</span>
         ${typeof p.referencePrice === "number" ? `<span class="p-price" title="Precio referencial">Ref. ${fmtRefPrice(p.referencePrice)}</span>` : ""}</span>
+        ${!st.available ? `<span class="p-unavail">🔴 Producto no disponible · Agotado: ${esc(st.missing.join(", "))}</span>` : ""}
+        ${st.available && st.choiceLimited.length ? `<span class="p-limited">⚠️ Sin ${esc(st.choiceLimited.join(", "))}: elige otra opción</span>` : ""}
+        ${st.available && st.optionalMissing.length ? `<span class="p-limited">⚠️ Sin ${esc(st.optionalMissing.join(", ").toLowerCase())} (agotado)</span>` : ""}
       </button>
       <div class="qty-ctl">
         ${qty ? `<button class="qbtn minus" data-action="dec" data-pid="${esc(p.id)}" aria-label="Quitar uno">−</button>
         <span class="qty" aria-label="Cantidad">${qty}</span>` : ""}
-        <button class="qbtn plus" data-action="add" data-pid="${esc(p.id)}" aria-label="Agregar uno">+</button>
+        <button class="qbtn plus" data-action="add" data-pid="${esc(p.id)}" aria-label="Agregar uno" ${st.available ? "" : "disabled"}>+</button>
       </div>
     </div>`;
   }).join("");
@@ -319,6 +330,9 @@ function changeQty(productId, delta) {
   const p = state.catalog.products.find((x) => x.id === productId);
   if (!p) return;
   if (delta > 0) {
+    // Bloqueo real: un producto con ingrediente agotado no se puede agregar.
+    const st = productStatus(p);
+    if (!st.available) { toast(`Producto no disponible · Agotado: ${st.missing.join(", ")}`, "error"); return; }
     const line = d.items.find((i) => i.productId === productId);
     if (line) line.quantity += 1;
     else d.items.push({
@@ -379,8 +393,13 @@ function renderLines() {
   if (!el) return;
   const d = draftFor(ui.table);
   if (!d.items.length) { el.innerHTML = `<p class="empty">Sin productos${d.correctionOf ? " (corrección sólo con nota)" : ""}.</p>`; return; }
-  const lineHtml = (it, i) => `
-    <div class="line ${isDrink(it) ? "line-drink" : ""}">
+  const lineHtml = (it, i) => {
+    const p = productById(it.productId);
+    const st = p ? productStatus(p) : null;
+    return `
+    <div class="line ${isDrink(it) ? "line-drink" : ""} ${st && !st.available ? "line-off" : ""}">
+      ${st && !st.available ? `<div class="line-unavail">🔴 NO DISPONIBLE · Agotado: ${esc(st.missing.join(", ").toUpperCase())}</div>` : ""}
+      ${st && st.available && st.optionalMissing.length ? `<div class="line-limited">⚠️ Se enviará ${esc(optionalNote(st.optionalMissing))}</div>` : ""}
       <div class="line-row">
         <div class="line-qty">${it.quantity} ×</div>
         <div class="line-name">${esc(it.productName)}
@@ -402,6 +421,7 @@ function renderLines() {
         <button class="btn btn-sm btn-primary" data-action="lnote-done">Listo</button>
       </div>` : ""}
     </div>`;
+  };
   const food = d.items.map((it, i) => [it, i]).filter(([it]) => !isDrink(it));
   const drinks = d.items.map((it, i) => [it, i]).filter(([it]) => isDrink(it));
   el.innerHTML =
@@ -423,6 +443,9 @@ async function sendDraft(btn) {
   const d = draftFor(table);
   if (!d.items.length && !d.correctionOf) return toast("Agrega al menos un producto", "error");
   if (d.correctionOf && !d.generalNotes.trim()) return toast("Describe la corrección en la nota general", "error");
+  // Validación de disponibilidad con el estado ACTUAL (aunque el carrito se abrió antes).
+  const pre = checkItems(d.items);
+  if (pre.blocked.length) { await resolveBlocked(table, pre.blocked); return; }
   sending = true;
   btn.disabled = true;
   try {
@@ -439,6 +462,15 @@ async function sendDraft(btn) {
         + (toKitchen ? "\n\nUna vez enviada, la orden no se puede modificar (sólo con una corrección)." : ""),
       toKitchen ? "Sí, ENVIAR" : "Guardar bebidas", "primary");
     if (!ok) return;
+    // Re-verificar: la cocina pudo agotar algo mientras se confirmaba.
+    const again = checkItems(d.items);
+    if (again.blocked.length) { await resolveBlocked(table, again.blocked); return; }
+    // Opcionales agotados: se avisa a cocina en la nota del producto.
+    for (const o of again.optional) {
+      const it = d.items[o.index];
+      const note = optionalNote(o.optionalMissing);
+      if (!String(it.notes || "").includes(note)) it.notes = [it.notes, note].filter(Boolean).join(" · ");
+    }
     const waiter = getWaiter();
     if (drinks.length) {
       addDrinks({
@@ -467,6 +499,19 @@ async function sendDraft(btn) {
     sending = false;
     if (btn.isConnected) btn.disabled = false;
   }
+}
+
+/** Muestra "NO SE PUEDE ENVIAR EL PEDIDO" y deja corregir o quitar los agotados. */
+async function resolveBlocked(table, blocked) {
+  const action = await blockedDialog(blocked);
+  if (action === "remove") {
+    const d = draftFor(table);
+    const idx = new Set(blocked.map((b) => b.index));
+    d.items = d.items.filter((_, i) => !idx.has(i));
+    saveDraft(table, d);
+    toast("Productos no disponibles quitados. Revisa el pedido y vuelve a enviar.", "info", 4000);
+  }
+  if (view === "summary") renderLines();
 }
 
 /* ---------- 5. Resultado del envío ---------- */

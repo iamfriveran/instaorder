@@ -35,6 +35,7 @@ export const state = {
   usersMode: false,  // true = cada empleado entra con usuario y contraseña
   me: null,          // perfil del usuario con sesión iniciada (modo usuarios)
   users: [],         // lista de usuarios (modo usuarios)
+  ingredients: {},   // disponibilidad de ingredientes (Firebase /ingredients)
 };
 
 const subs = new Set();

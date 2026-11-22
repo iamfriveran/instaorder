@@ -18,7 +18,7 @@
  * actualizar la app no borra órdenes.
  */
 
-const CACHE_VERSION = "instaorder-v1.3.1";
+const CACHE_VERSION = "instaorder-v1.4.1";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -29,6 +29,7 @@ const APP_SHELL = [
   "./catalog.js",
   "./manifest.json",
   "./js/auth.js",
+  "./js/availability.js",
   "./js/components.js",
   "./js/external.js",
   "./js/pedidosya.js",

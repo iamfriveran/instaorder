@@ -30,6 +30,7 @@ Sistema interno de pedidos en mesa y comunicación en tiempo real entre **mesero
 15. [INSTALACIÓN DE INSTAOrder EN TELÉFONOS](#15-instalación-de-instaorder-en-teléfonos)
 16. [USUARIOS, CONTRASEÑAS Y ROLES](#16-usuarios-contraseñas-y-roles)
 17. [PEDIDOS EXTERNOS (PedidosYa) e HISTORIAL PERMANENTE](#17-pedidos-externos-pedidosya-e-historial-permanente)
+18. [DISPONIBILIDAD DE INGREDIENTES (productos agotados)](#18-disponibilidad-de-ingredientes-productos-agotados)
 
 ---
 
@@ -56,6 +57,7 @@ instaorder/
 │   ├── state.js           Estado compartido y valores por defecto
 │   ├── router.js          Navegación (#/mesero, #/cocina, …)
 │   ├── auth.js            Inicio de sesión, primer Admin, cuentas bloqueadas
+│   ├── availability.js    Ingredientes agotados: pantalla de cocina y bloqueo de productos
 │   ├── components.js      Cabecera e indicador de conexión
 │   ├── external.js        PEDIDOS EXTERNOS: subir captura, revisar, enviar
 │   ├── pedidosya.js       OCR local (Tesseract.js) + lectura de capturas de PedidosYa
@@ -549,3 +551,42 @@ Mismo nodo `/orders` que los pedidos de mesa, con campos nuevos:
 - El OCR depende de la calidad de la captura: usa la captura completa de la orden, sin recortar ni hacer zoom. Siempre revisa antes de enviar (los productos dudosos aparecen en amarillo; los no identificados, en rojo).
 - La primera lectura en cada teléfono tarda más (descarga ~5 MB). Luego, 2–5 segundos según el teléfono.
 - Las bebidas de un pedido externo **sí aparecen en cocina** (marcadas 🥤) porque van empacadas en el mismo pedido.
+
+---
+
+## 18. DISPONIBILIDAD DE INGREDIENTES (productos agotados)
+
+Versión 1.4.0.
+
+### Cocina
+Modo cocina › botón **🥫 Ingredientes** (cuando hay agotados se vuelve rojo: **🔴 2 agotado(s)**).
+Cada ingrediente muestra **🟢 DISPONIBLE** con **MARCAR NO DISPONIBLE**, o **🔴 AGOTADO / NO DISPONIBLE** con **VOLVER A DISPONIBLE**. Al agotar, se confirma mostrando qué productos se bloquearán. **📋 Registro de hoy** muestra quién cambió qué y a qué hora. **➕ Ingrediente** agrega uno nuevo.
+
+### Meseros
+- El cambio llega **al instante** a todos los teléfonos, sin recargar.
+- Los productos afectados se ven atenuados con **🔴 Producto no disponible · Agotado: Res**, y el botón **+** queda deshabilitado: no se pueden agregar.
+- Al **ENVIAR A COCINA** se vuelve a revisar todo con el estado actual (aunque el pedido se haya armado antes). Si algo se agotó: **⚠️ NO SE PUEDE ENVIAR EL PEDIDO**, con el producto y el ingrediente; se puede **Quitar no disponibles** o **Corregir pedido**.
+- **Opcionales** (guacamole, pico de gallo, cebolla, salsas…): si se agotan, el producto se sigue vendiendo con **⚠️ Sin guacamole (agotado)** y a cocina le llega la nota **"SIN GUACAMOLE (agotado)"**.
+- **A elección** (Bandejas "res, pollo o cerdo", Promo 3 "Res/Pollo"): se bloquean sólo si se agotan **todas** sus opciones; mientras tanto muestran **⚠️ Sin Res: elige otra opción**.
+- Las proteínas son productos separados en el catálogo (Quesadilla Res, Quesadilla Pollo…): si se agota la res, sólo se bloquean las versiones con res.
+- **Pedidos externos:** como ya fueron aceptados en PedidosYa no se bloquean, pero se avisa y se pide confirmar; a cocina le llega "⚠️ AGOTADO …" en la nota.
+- Las órdenes ya enviadas, aceptadas o del historial **no se modifican**.
+
+### Ingredientes de cada producto
+La relación inicial se armó con las **descripciones de tu menú** (Menu_Takolandia_Descripciones.xlsx):
+- **Obligatorios:** proteína, tortilla/base, queso (en quesadillas, nachos, doritos, flautas, gratinados), frejol (burritos), etc.
+- **Opcionales:** guarniciones y salsas ("servido con…").
+- **Birria** es independiente: agotar Res NO bloquea la birria, y agotar Birria NO bloquea los productos de res.
+- **Pastor** se controla aparte de Cerdo. Si se acaba todo el cerdo, marca Cerdo y Pastor.
+- Bebidas y cócteles: sólo Coca-Cola, Horchata y Jamaica. El resto no se controla por ingrediente (se puede desactivar el producto en el catálogo).
+
+Para corregirla: **Configuración › Catálogo** (Admin) › producto › **🧩 Ingredientes**: por ingrediente elige *No lleva / Obligatorio / Opcional / A elección* › **Aplicar** › **Guardar**.
+
+### Datos (Firebase)
+- `/ingredients/{id}`: `name`, `group`, `order`, `available`, `updatedAt`, `updatedBy`. Lo escribe cocina o Admin.
+- `/ingredientLog/{id}`: `ingredientId`, `name`, `from`, `to`, `at`, `byName`, `dayKey`. Sólo se agrega.
+- Catálogo: cada producto lleva `ingredients` (obligatorios; `"res|pollo"` = a elección) y `optional`.
+
+### Para activarlo
+1. **Realtime Database › Rules**: pega el nuevo `database.rules.json` › **Publish** (agrega `ingredients` e `ingredientLog`).
+2. Sube los archivos a GitHub.

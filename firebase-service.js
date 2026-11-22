@@ -660,6 +660,31 @@ class DataService {
     });
   }
 
+  /* ---------- Disponibilidad de ingredientes ---------- */
+
+  /** Estado compartido de ingredientes: { id: {name, group, order, available, updatedAt, updatedBy} } */
+  watchIngredients(cb, onError) { return this.adapter.listen("ingredients", (v) => cb(v || {}), onError); }
+
+  /** Marca un ingrediente como disponible/agotado y deja constancia en el registro. */
+  setIngredientAvailable(ing, available, by) {
+    if (!this.adapter.isConnected()) return Promise.reject(new OfflineError());
+    const now = this.now();
+    return this.adapter.update({
+      [`ingredients/${ing.id}`]: {
+        name: ing.name, group: ing.group || "complementos", order: ing.order ?? 999,
+        available: !!available, updatedAt: SERVER_TS, updatedBy: { id: by?.id || "", name: by?.name || "Cocina" },
+      },
+      [`ingredientLog/${this.adapter.newKey()}`]: {
+        ingredientId: ing.id, name: ing.name, from: ing.available !== false, to: !!available,
+        at: SERVER_TS, byId: by?.id || "", byName: by?.name || "Cocina", dayKey: dayKeyOf(now),
+      },
+    });
+  }
+
+  async getIngredientLog(dayKey = dayKeyOf(this.now())) {
+    return Object.values(await this.adapter.queryOnce("ingredientLog", "dayKey", dayKey));
+  }
+
   /* ---------- Sesión (modo email) ---------- */
   needsLogin() { return this.adapter.needsLogin(); }
   get usersMode() { return USERS_MODE; }

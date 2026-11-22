@@ -24,10 +24,11 @@ import { WaiterScreen, startWaiterAlerts } from "./js/waiter.js";
 import { KitchenScreen, HistoryScreen } from "./js/kitchen.js";
 import { SettingsScreen } from "./js/settings.js";
 import { ExternalScreen } from "./js/external.js";
+import { IngredientsScreen } from "./js/availability.js";
 import { showLogin, watchMyProfile } from "./js/auth.js";
 import { initInstall, installButtonHtml, startInstall, onInstallChange, HelpScreen } from "./js/install.js";
 
-export const APP_VERSION = "1.3.1";
+export const APP_VERSION = "1.4.1";
 
 /* ------------------------------------------------------------------ */
 /* Pantalla de inicio                                                  */
@@ -263,6 +264,9 @@ async function boot() {
     emit();
   }, onDataError);
 
+  // Disponibilidad de ingredientes: en tiempo real en todos los dispositivos.
+  dataService.watchIngredients((v) => { state.ingredients = v; emit(); }, onDataError);
+
   dataService.watchActiveOrders((orders) => {
     state.activeOrders = orders;
     state.ordersLoaded = true;
@@ -278,6 +282,7 @@ async function boot() {
   defineRoute("config", SettingsScreen);
   defineRoute("ayuda", HelpScreen);
   defineRoute("externos", ExternalScreen);
+  defineRoute("ingredientes", IngredientsScreen);
 
   // Recordar el último modo usado en este dispositivo.
   if (!location.hash || location.hash === "#/" || location.hash === "#") {
