@@ -123,3 +123,10 @@ Pendiente en real: publicar las reglas y probar con la tablet y los teléfonos d
 - ✅ "Tortilla de maíz" y "Tortilla de trigo" retiradas; un catálogo guardado con ellas se convierte solo a las nuevas.
 - ✅ Botón 🏠 en la cabecera de todas las pantallas (mesero, externos, cocina, historial, configuración, ayuda, ingredientes); si hay cambios sin guardar, pregunta antes.
 - ✅ Regresión: 37/37, ingredientes, birria, bebidas, pedidos externos.
+
+## v1.4.3 — Opciones de producto en PedidosYa (orden #159, 23-nov-2026)
+Causa del "1 × BURRITO GRATINADO RES" en la #159: el recuadro de opciones de la Promo 2 ("1Por Elige tu salsa · Extra · 1Por Salsa cheddar") se leyó como productos aparte, y "Salsa cheddar" se emparejó con el Burrito Gratinado Res por su descripción.
+- ✅ Las opciones (líneas "1Por" con sangría dentro del recuadro) ahora son NOTA del producto: Promo 2 → "Salsa cheddar (extra)".
+- ✅ Un producto suelto ya no se elige sólo por su descripción: debe coincidir alguna palabra del nombre.
+- ✅ Productos dudosos (amarillo) piden confirmación explícita antes de enviar.
+- ✅ #148, #154, #159 reales y variantes: correctas.

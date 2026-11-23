@@ -345,6 +345,11 @@ async function send(btn) {
   const unknown = d.items.filter((i) => !i.productId);
   if (unknown.length && !(await confirmDialog("Productos no identificados",
     `${unknown.map((i) => `• ${i.productName}`).join("\n")}\n\nSe enviarán a cocina con el texto tal como está. ¿Continuar?`, "Enviar así", "danger"))) return;
+  // Productos dudosos (amarillo): confirmación explícita, no sólo un aviso.
+  const doubtful = d.items.filter((i) => i.productId && i.confident === false && i.rawText);
+  if (doubtful.length && !(await confirmDialog("¿Los productos son correctos?",
+    `${doubtful.map((i) => `• Leído: “${i.rawText}”\n   → ${i.quantity} × ${i.productName}`).join("\n")}\n\nSi no coincide, toca "Cancelar" y cámbialo o elimínalo.`,
+    "Sí, son correctos", "primary"))) return;
   if (!d.preparationMinutes && !d.targetReadyAt && !(await confirmDialog("Tiempo de preparación desconocido",
     "No hay minutos asignados ni hora objetivo. Cocina no verá cuenta regresiva.\n¿Enviar sin tiempo?", "Enviar sin tiempo", "danger"))) return;
   // Disponibilidad: el pedido externo ya fue aceptado en PedidosYa, así que no se

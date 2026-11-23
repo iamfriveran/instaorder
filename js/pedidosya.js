@@ -150,7 +150,12 @@ export function matchProduct(text, catalog) {
     for (const t of q) if (hasSyn(all, t)) cover++;
     const ocrCov = cover / q.size;
     const recall = (set) => { if (!set.size) return 0; let n = 0; for (const t of set) if (hasSyn(q, t)) n++; return n / set.size; };
-    let score = 0.65 * ocrCov + 0.35 * Math.max(recall(nameT), recall(descT));
+    const nameRecall = recall(nameT);
+    let score = 0.65 * ocrCov + 0.35 * Math.max(nameRecall, recall(descT));
+    // Un producto suelto debe coincidir en al menos una palabra de su NOMBRE: "Salsa cheddar"
+    // no es un "Burrito Gratinado" aunque su descripción mencione salsa cheddar.
+    // (Las promociones/bandejas se reconocen por su contenido.)
+    if (nameRecall === 0 && p.categoryId !== "promociones" && p.categoryId !== "bandejas") score *= 0.4;
     // Un texto con "+" es un combo: favorece promociones/bandejas frente a productos sueltos.
     if (/\+/.test(text) && (p.categoryId === "promociones" || p.categoryId === "bandejas")) score += 0.1;
     score = Math.min(1, score);
@@ -259,13 +264,24 @@ function lineTextNoPrice(ocr, line) {
   return ws.filter((w) => w.bbox.x0 < W * 0.72).sort((a, b) => a.bbox.x0 - b.bbox.x0).map((w) => w.text).join(" ").replace(PRICE_TAIL, "");
 }
 
+const GROUP_LABEL = /^(elige|escoge|selecciona|elegir|escoja|opciones?|extras?|adicional(es)?|agregados?)\b/i;
+
 function findItems(ocr, catalog, customerLineIdx) {
   const items = [];
   const lines = ocr.lines;
+  // Posición horizontal del "1Por" de cada línea de producto. Los productos principales
+  // empiezan a la izquierda; las OPCIONES de un producto (recuadro "Elige tu salsa /
+  // Extra / 1Por Salsa cheddar") empiezan bastante más a la derecha.
+  const porX = (l) => ocr.words.find((w) => /^[0-9Il|]{0,2}P[o0]r$/i.test(w.text) && Math.abs((w.bbox.y0 + w.bbox.y1) / 2 - (l.bbox.y0 + l.bbox.y1) / 2) < 30)?.bbox.x0 ?? l.bbox.x0;
+  const starts = lines.slice(Math.max(0, customerLineIdx)).filter((l) => ITEM_START.test(l.text)).map(porX);
+  const mainX = starts.length ? Math.min(...starts) : 0;
+  const indentLimit = mainX + Math.max(60, (ocr.width || 900) * 0.07);
+  let extraGroup = false;
   for (let i = Math.max(0, customerLineIdx); i < lines.length; i++) {
     const m = lines[i].text.match(ITEM_START);
     if (!m) continue;
     const qty = Number(m[1].replace(/[Il|]/g, "1")) || 1;
+    const isModifier = items.length > 0 && porX(lines[i]) > indentLimit;
     let text = (lineTextNoPrice(ocr, lines[i]).match(ITEM_START)?.[2] ?? m[2]).replace(PRICE_TAIL, "").trim();
     const startWord = ocr.words.find((w) => /P[o0]r$/i.test(w.text) && Math.abs(w.bbox.y0 - lines[i].bbox.y0) < 25);
     const textX = startWord ? startWord.bbox.x1 : lines[i].bbox.x0 + 80;
@@ -278,7 +294,17 @@ function findItems(ocr, catalog, customerLineIdx) {
       text += " " + lineTextNoPrice(ocr, l).trim();
     }
     i = j - 1;
-    text = text.replace(/\s+/g, " ").trim();
+    text = text.replace(/\s+/g, " ").replace(/\s*[-–—]+\s*$/, "").trim();
+    if (isModifier) {
+      // Opción del producto anterior: no es un producto nuevo, va como nota para cocina.
+      if (GROUP_LABEL.test(text)) { extraGroup = /extra|adicional/i.test(text); continue; }
+      const prev = items[items.length - 1];
+      const opt = `${qty > 1 ? qty + "× " : ""}${text}${extraGroup ? " (extra)" : ""}`;
+      prev.notes = prev.notes ? `${prev.notes} · ${opt}` : opt;
+      prev.modifiers = [...(prev.modifiers || []), opt];
+      continue;
+    }
+    extraGroup = false;
     const cands = matchProduct(text, catalog);
     const best = cands[0];
     const second = cands[1];
