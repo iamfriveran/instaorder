@@ -141,7 +141,7 @@ export const KitchenScreen = {
         <button class="chip-btn" data-action="${fixedCook ? "account" : "cook"}">👨‍🍳 ${esc(cook?.name || "Identificarse")}</button>
         <button class="chip-btn" data-action="ingredients" id="k-ing-btn">🥫 Ingredientes</button>
         <button class="chip-btn" data-action="history">📚 Historial</button>
-        <button class="chip-btn" data-action="home" aria-label="Inicio">🏠</button>`,
+`,
     })}${demoNotice()}
     <div class="audio-strip" id="audio-strip" hidden><button data-action="unlock">🔈 Toca aquí para activar el sonido de alertas</button></div>
     <main class="kds" data-blink="${esc(getPrefs().blinkStyle)}">

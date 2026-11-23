@@ -33,7 +33,8 @@ export const DEFAULT_INGREDIENTS = [
   ["res", "Res", "proteinas"], ["pollo", "Pollo", "proteinas"], ["cerdo", "Cerdo", "proteinas"],
   ["pastor", "Pastor", "proteinas"], ["birria", "Birria", "proteinas"], ["chorizo", "Chorizo", "proteinas"],
   ["camaron", "Camarón", "proteinas"],
-  ["tortilla-maiz", "Tortilla de maíz", "bases"], ["tortilla-trigo", "Tortilla de trigo", "bases"], ["nachos", "Nachos (totopos)", "bases"],
+  ["tortilla-tacos", "Tortilla de tacos", "bases"], ["tortilla-burritos", "Tortilla de burritos y quesadillas", "bases"],
+  ["tortilla-flautas", "Tortilla de flautas", "bases"], ["nachos", "Nachos (totopos)", "bases"],
   ["doritos-limon", "Doritos de limón", "bases"], ["doritos-hot", "Doritos picantes", "bases"], ["doritos-normal", "Doritos natural", "bases"],
   ["frejol", "Frejol", "bases"], ["arroz", "Arroz", "bases"], ["tortillas", "Tortillas (fajitas)", "bases"], ["verduras", "Verduras salteadas", "bases"],
   ["queso", "Queso", "complementos"], ["guacamole", "Guacamole", "complementos"], ["pico-gallo", "Pico de gallo", "complementos"],
@@ -41,6 +42,9 @@ export const DEFAULT_INGREDIENTS = [
   ["jalapeno", "Jalapeño", "complementos"], ["salsa-cheddar", "Salsa cheddar", "complementos"], ["salsa-agria", "Salsa agria", "complementos"],
   ["coca-cola", "Coca-Cola", "bebidas"], ["horchata", "Horchata", "bebidas"], ["jamaica", "Jamaica", "bebidas"],
 ].map(([id, name, group], i) => ({ id, name, group, order: i + 1 }));
+
+/** Ingredientes retirados (v1.4.1 → v1.4.2): ya no se muestran ni bloquean. */
+const LEGACY = new Set(["tortilla-maiz", "tortilla-trigo"]);
 
 const DEFAULT_COMPOSITION = Object.fromEntries(DEFAULT_CATALOG.products.map((p) => [p.id, { ingredients: p.ingredients || [], optional: p.optional || [] }]));
 
@@ -54,7 +58,7 @@ export function ingredientList() {
     map.set(id, base ? { ...v, ...base, available: v.available, updatedAt: v.updatedAt, updatedBy: v.updatedBy, id }
       : { id, group: "complementos", order: 999, ...v });
   }
-  return [...map.values()].filter((i) => i.deleted !== true).sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+  return [...map.values()].filter((i) => i.deleted !== true && !LEGACY.has(i.id)).sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 }
 
 const ingById = (id) => ingredientList().find((i) => i.id === id);
@@ -66,10 +70,14 @@ export const isIngAvailable = (id) => ingById(id)?.available !== false;
 export function composition(p) {
   if (!p) return { ingredients: [], optional: [] };
   const d = DEFAULT_COMPOSITION[p.id] || { ingredients: [], optional: [] };
-  return {
-    ingredients: Array.isArray(p.ingredients) ? p.ingredients : (p.ingredients ? Object.values(p.ingredients) : d.ingredients),
-    optional: Array.isArray(p.optional) ? p.optional : (p.optional ? Object.values(p.optional) : d.optional),
-  };
+  let ingredients = Array.isArray(p.ingredients) ? p.ingredients : (p.ingredients ? Object.values(p.ingredients) : d.ingredients);
+  const optional = (Array.isArray(p.optional) ? p.optional : (p.optional ? Object.values(p.optional) : d.optional)).filter((x) => !LEGACY.has(x));
+  // Un catálogo guardado antes del cambio de tortillas: se reemplazan las antiguas por las nuevas.
+  if (ingredients.some((e) => String(e).split("|").some((a) => LEGACY.has(a)))) {
+    const newTort = d.ingredients.filter((e) => String(e).startsWith("tortilla-"));
+    ingredients = [...newTort, ...ingredients.filter((e) => !String(e).split("|").some((a) => LEGACY.has(a)))];
+  }
+  return { ingredients, optional };
 }
 
 /**

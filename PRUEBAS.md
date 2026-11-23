@@ -115,3 +115,11 @@ Pendiente en real: probar con varias capturas reales de PedidosYa (distintos pro
 | — | Regresión | ✅ 37/37, bebidas, usuarios, pedidos externos |
 
 Pendiente en real: publicar las reglas y probar con la tablet y los teléfonos del restaurante.
+
+## v1.4.2 — Tortillas por uso + atajo 🏠 (22-nov-2026)
+- ✅ Tortilla de tacos agotada → 10 bloqueados (6 tacos, 2 bandejas, Promo 1 y 3).
+- ✅ Tortilla de burritos y quesadillas agotada → 21 bloqueados (7 quesadillas, 10 burritos/chimichangas, 2 bandejas, Promo 2 y 3).
+- ✅ Tortilla de flautas agotada → 3 flautas.
+- ✅ "Tortilla de maíz" y "Tortilla de trigo" retiradas; un catálogo guardado con ellas se convierte solo a las nuevas.
+- ✅ Botón 🏠 en la cabecera de todas las pantallas (mesero, externos, cocina, historial, configuración, ayuda, ingredientes); si hay cambios sin guardar, pregunta antes.
+- ✅ Regresión: 37/37, ingredientes, birria, bebidas, pedidos externos.

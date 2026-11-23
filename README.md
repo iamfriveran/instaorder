@@ -574,6 +574,7 @@ Cada ingrediente muestra **🟢 DISPONIBLE** con **MARCAR NO DISPONIBLE**, o **�
 
 ### Ingredientes de cada producto
 La relación inicial se armó con las **descripciones de tu menú** (Menu_Takolandia_Descripciones.xlsx):
+- **Tortillas** (por uso, no por tipo): **Tortilla de tacos** (tacos, Promo 1 y 3, Bandejas), **Tortilla de burritos y quesadillas** (quesadillas, burritos, chimichangas, Promo 2 y 3, Bandejas) y **Tortilla de flautas**.
 - **Obligatorios:** proteína, tortilla/base, queso (en quesadillas, nachos, doritos, flautas, gratinados), frejol (burritos), etc.
 - **Opcionales:** guarniciones y salsas ("servido con…").
 - **Birria** es independiente: agotar Res NO bloquea la birria, y agotar Birria NO bloquea los productos de res.

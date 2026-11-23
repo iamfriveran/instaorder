@@ -142,7 +142,7 @@ export const DEFAULT_CATALOG = {
       "order": 1,
       "description": "Tortilla de maíz, carne de res, guacamole, cebolla y limón.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-tacos",
         "res"
       ],
       "optional": [
@@ -160,7 +160,7 @@ export const DEFAULT_CATALOG = {
       "order": 2,
       "description": "Tortilla de maíz, pechuga de pollo, guacamole, cebolla y limón.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-tacos",
         "pollo"
       ],
       "optional": [
@@ -178,7 +178,7 @@ export const DEFAULT_CATALOG = {
       "order": 3,
       "description": "Tortilla de maíz, carne de cerdo, piña, guacamole, cebolla y limón.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-tacos",
         "pastor"
       ],
       "optional": [
@@ -197,7 +197,7 @@ export const DEFAULT_CATALOG = {
       "order": 4,
       "description": "Tortilla de maíz, carne de res desmechada en salsa picante, guacamole y cebolla.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-tacos",
         "birria"
       ],
       "optional": [
@@ -214,7 +214,7 @@ export const DEFAULT_CATALOG = {
       "order": 5,
       "description": "Tortilla de maíz, carne de res, chorizo, guacamole, cebolla y limón.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-tacos",
         "res",
         "chorizo"
       ],
@@ -233,7 +233,7 @@ export const DEFAULT_CATALOG = {
       "order": 6,
       "description": "Todas las carnes: res, cerdo, pollo, chorizo, guacamole, cebolla y limón.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-tacos",
         "res",
         "pollo",
         "cerdo",
@@ -254,7 +254,7 @@ export const DEFAULT_CATALOG = {
       "order": 7,
       "description": "Tortilla de trigo, queso, guacamole, pico de gallo.",
       "ingredients": [
-        "tortilla-trigo",
+        "tortilla-burritos",
         "queso"
       ],
       "optional": [
@@ -271,7 +271,7 @@ export const DEFAULT_CATALOG = {
       "order": 8,
       "description": "Tortilla de trigo, queso, carne de res, guacamole, pico de gallo.",
       "ingredients": [
-        "tortilla-trigo",
+        "tortilla-burritos",
         "queso",
         "res"
       ],
@@ -289,7 +289,7 @@ export const DEFAULT_CATALOG = {
       "order": 9,
       "description": "Tortilla de trigo, queso, pechuga de pollo, guacamole, pico de gallo.",
       "ingredients": [
-        "tortilla-trigo",
+        "tortilla-burritos",
         "queso",
         "pollo"
       ],
@@ -307,7 +307,7 @@ export const DEFAULT_CATALOG = {
       "order": 10,
       "description": "Tortilla de trigo, queso, carne de cerdo, piña, guacamole, pico de gallo.",
       "ingredients": [
-        "tortilla-trigo",
+        "tortilla-burritos",
         "queso",
         "pastor"
       ],
@@ -326,7 +326,7 @@ export const DEFAULT_CATALOG = {
       "order": 11,
       "description": "Tortilla de trigo, queso, carne de res, chorizo, guacamole, pico de gallo.",
       "ingredients": [
-        "tortilla-trigo",
+        "tortilla-burritos",
         "queso",
         "res",
         "chorizo"
@@ -345,7 +345,7 @@ export const DEFAULT_CATALOG = {
       "order": 12,
       "description": "Tortilla de trigo, queso, todas las carnes, chorizo, guacamole, pico de gallo.",
       "ingredients": [
-        "tortilla-trigo",
+        "tortilla-burritos",
         "queso",
         "res",
         "pollo",
@@ -366,7 +366,7 @@ export const DEFAULT_CATALOG = {
       "order": 13,
       "description": "Tortilla de trigo, queso, carne de res desmechada, guacamole, pico de gallo.",
       "ingredients": [
-        "tortilla-trigo",
+        "tortilla-burritos",
         "queso",
         "birria"
       ],
@@ -384,7 +384,7 @@ export const DEFAULT_CATALOG = {
       "order": 14,
       "description": "Tortilla de maíz, frejol, res. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-burritos",
         "frejol",
         "res"
       ],
@@ -404,7 +404,7 @@ export const DEFAULT_CATALOG = {
       "order": 15,
       "description": "Tortilla de maíz, frejol, pollo. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-burritos",
         "frejol",
         "pollo"
       ],
@@ -424,7 +424,7 @@ export const DEFAULT_CATALOG = {
       "order": 16,
       "description": "Tortilla de maíz, frejol, cerdo, piña. Servido con guacamole, pico de gallo, salsa cheddar y salsa agria.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-burritos",
         "frejol",
         "pastor"
       ],
@@ -445,6 +445,7 @@ export const DEFAULT_CATALOG = {
       "order": 17,
       "description": "Frejol, res, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria.",
       "ingredients": [
+        "tortilla-burritos",
         "frejol",
         "res",
         "queso"
@@ -465,6 +466,7 @@ export const DEFAULT_CATALOG = {
       "order": 18,
       "description": "Frejol, pollo, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria.",
       "ingredients": [
+        "tortilla-burritos",
         "frejol",
         "pollo",
         "queso"
@@ -485,6 +487,7 @@ export const DEFAULT_CATALOG = {
       "order": 19,
       "description": "Frejol, cerdo, piña, guacamole, queso. Servido con pico de gallo, salsa cheddar y salsa agria.",
       "ingredients": [
+        "tortilla-burritos",
         "frejol",
         "pastor",
         "queso"
@@ -506,6 +509,7 @@ export const DEFAULT_CATALOG = {
       "order": 20,
       "description": "Frejol, guacamole, pico de gallo, carne de res desmechada, salsa cheddar y salsa agria.",
       "ingredients": [
+        "tortilla-burritos",
         "frejol",
         "birria"
       ],
@@ -525,7 +529,7 @@ export const DEFAULT_CATALOG = {
       "order": 21,
       "description": "Tortilla de maíz frita con frejol, res. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-burritos",
         "frejol",
         "res"
       ],
@@ -546,7 +550,7 @@ export const DEFAULT_CATALOG = {
       "order": 22,
       "description": "Tortilla de maíz frita con frejol, pollo. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-burritos",
         "frejol",
         "pollo"
       ],
@@ -567,7 +571,7 @@ export const DEFAULT_CATALOG = {
       "order": 23,
       "description": "Tortilla de maíz frita con frejol, cerdo. Servida con guacamole, queso, pico de gallo, salsa cheddar y salsa agria.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-burritos",
         "frejol",
         "cerdo"
       ],
@@ -941,7 +945,7 @@ export const DEFAULT_CATALOG = {
       "order": 45,
       "description": "Tortilla frita de maíz con queso, res, lechuga, pico de gallo y guacamole.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-flautas",
         "queso",
         "res"
       ],
@@ -960,7 +964,7 @@ export const DEFAULT_CATALOG = {
       "order": 46,
       "description": "Tortilla frita de maíz con queso, pollo, lechuga, pico de gallo y guacamole.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-flautas",
         "queso",
         "pollo"
       ],
@@ -979,7 +983,7 @@ export const DEFAULT_CATALOG = {
       "order": 47,
       "description": "Tortilla frita de maíz con queso, lechuga, pico de gallo y guacamole.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-flautas",
         "queso"
       ],
       "optional": [
@@ -997,9 +1001,9 @@ export const DEFAULT_CATALOG = {
       "order": 48,
       "description": "Tres tacos, dos quesadillas, proteína a elección (res, pollo o cerdo), una (1) bebida.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-tacos",
+        "tortilla-burritos",
         "res|pollo|cerdo",
-        "tortilla-trigo",
         "queso"
       ]
     },
@@ -1012,7 +1016,8 @@ export const DEFAULT_CATALOG = {
       "order": 49,
       "description": "Tres tacos, un burrito clásico, proteína a elección (res, pollo o cerdo), una (1) bebida.",
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-tacos",
+        "tortilla-burritos",
         "res|pollo|cerdo",
         "frejol"
       ]
@@ -1387,7 +1392,7 @@ export const DEFAULT_CATALOG = {
       "active": true,
       "order": 87,
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-tacos",
         "res",
         "guacamole",
         "coca-cola"
@@ -1403,10 +1408,9 @@ export const DEFAULT_CATALOG = {
       "active": true,
       "order": 88,
       "ingredients": [
-        "tortilla-maiz",
+        "tortilla-burritos",
         "frejol",
         "res",
-        "tortilla-trigo",
         "queso",
         "coca-cola"
       ]
@@ -1421,9 +1425,10 @@ export const DEFAULT_CATALOG = {
       "active": true,
       "order": 89,
       "ingredients": [
+        "tortilla-burritos",
+        "tortilla-tacos",
         "frejol",
         "queso",
-        "tortilla-maiz",
         "res|pollo",
         "coca-cola"
       ]

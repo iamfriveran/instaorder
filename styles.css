@@ -691,3 +691,7 @@ body[data-screen="historial"] { background: var(--cream); }
 .comp-sum { flex-basis: 100%; font-size: .78rem; color: var(--ink); }
 .comp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--line); font-weight: 700; }
 .comp-row .field { max-width: 160px; min-height: 42px; padding: 6px 10px; }
+
+/* Atajo 🏠 en todas las cabeceras */
+.hdr-home { background: rgba(255,255,255,.18); font-size: 1.25rem; width: 42px; height: 42px; }
+@media (max-width: 640px) { .hdr-home { width: 38px; height: 38px; font-size: 1.1rem; } }

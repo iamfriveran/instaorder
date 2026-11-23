@@ -14,7 +14,7 @@
 import { dataService } from "./firebase-service.js";
 import { IS_DEMO } from "./firebase-config.js";
 import { state, emit, subscribe, mergeSettings, normalizeCatalog, logoSrc, can } from "./js/state.js";
-import { defineRoute, startRouter, go, refresh } from "./js/router.js";
+import { defineRoute, startRouter, go, refresh, currentRoute } from "./js/router.js";
 import { connPill, refreshConnPills, CONN_LABELS } from "./js/components.js";
 import { processOutbox } from "./js/outbox.js";
 import { getLastMode, setLastMode } from "./js/store.js";
@@ -28,7 +28,7 @@ import { IngredientsScreen } from "./js/availability.js";
 import { showLogin, watchMyProfile } from "./js/auth.js";
 import { initInstall, installButtonHtml, startInstall, onInstallChange, HelpScreen } from "./js/install.js";
 
-export const APP_VERSION = "1.4.1";
+export const APP_VERSION = "1.4.2";
 
 /* ------------------------------------------------------------------ */
 /* Pantalla de inicio                                                  */
@@ -291,6 +291,15 @@ async function boot() {
   }
 
   window.addEventListener("hashchange", updateConnBanner);
+
+  // Atajo 🏠 (en la cabecera de todas las pantallas): vuelve al inicio.
+  // Si la pantalla tiene cambios sin guardar, pregunta antes (canLeave).
+  document.addEventListener("click", async (e) => {
+    if (!e.target.closest("[data-home]")) return;
+    const scr = currentRoute()?.screen;
+    if (scr?.canLeave && !(await scr.canLeave())) return;
+    go("inicio");
+  });
   startRouter($("#app"));
   startWaiterAlerts();
   updateConnBanner();

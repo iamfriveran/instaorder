@@ -46,7 +46,7 @@ export function appHeader(o) {
       </div>
     </div>
     ${o.center ? `<div class="hdr-center">${o.center}</div>` : ""}
-    <div class="hdr-right">${o.right || ""}${connPill()}</div>
+    <div class="hdr-right">${o.right || ""}${o.noHome ? "" : `<button class="icon-btn hdr-home" data-home aria-label="Ir al inicio" title="Inicio">🏠</button>`}${connPill()}</div>
   </header>`;
 }
 

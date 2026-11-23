@@ -76,6 +76,9 @@ export const SettingsScreen = {
     if (!work.dirty) { const f = work.catFilter; work = freshWork(); work.catFilter = f; }
     if (tab === "sistema" || !work.dirty) render();
   },
+  async canLeave() {
+    return !work?.dirty || confirmDialog("Cambios sin guardar", "¿Salir sin guardar?", "Salir", "danger");
+  },
   unmount() {
     root?.removeEventListener("click", onClick);
     root?.removeEventListener("change", onChange);
