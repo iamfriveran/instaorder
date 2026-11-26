@@ -21,7 +21,7 @@ import { go } from "./router.js";
 import { appHeader, demoNotice } from "./components.js";
 import { submitOrder, outboxEntries, processOutbox } from "./outbox.js";
 import { getWaiter, deviceId } from "./store.js";
-import { runOcr, parsePedidosYa, matchProduct, PLATFORMS, norm } from "./pedidosya.js";
+import { readPedidosYa, matchProduct, PLATFORMS, norm } from "./pedidosya.js";
 import { productStatus, checkItems, optionalNote } from "./availability.js";
 import { $, esc, toast, confirmDialog, dialog, fmtTime, fmtDateTime, orderTitle, orderLabel, isExternal } from "./ui.js";
 
@@ -266,11 +266,10 @@ async function processImage() {
   ocrBusy = true;
   renderImage({ p: 0.02, label: "Preparando lector…" });
   try {
-    const ocr = await runOcr(image.file, (m) => {
-      const label = m.status === "recognizing text" ? "Leyendo captura…" : m.status?.includes("load") ? "Cargando lector (sólo la primera vez)…" : "Preparando…";
+    const r = await readPedidosYa(image.file, state.catalog, (m) => {
+      const label = m.status === "verifying" ? "Verificando minutos y número de orden…" : m.status === "recognizing text" ? "Leyendo captura…" : m.status?.includes("load") ? "Cargando lector (sólo la primera vez)…" : "Preparando…";
       renderImage({ p: m.progress || 0, label });
     });
-    const r = parsePedidosYa(ocr, state.catalog);
     const d = emptyDraft();
     Object.assign(d, {
       platform: r.platform, platformOrderNumber: r.platformOrderNumber, customerName: r.customerName,

@@ -130,3 +130,11 @@ Causa del "1 × BURRITO GRATINADO RES" en la #159: el recuadro de opciones de la
 - ✅ Un producto suelto ya no se elige sólo por su descripción: debe coincidir alguna palabra del nombre.
 - ✅ Productos dudosos (amarillo) piden confirmación explícita antes de enviar.
 - ✅ #148, #154, #159 reales y variantes: correctas.
+
+## v1.4.4 — Formato nuevo de PedidosYa (orden #160, 25-nov-2026)
+Causa: PedidosYa cambió "1Por" por "1x" y "Cliente" por "Customer"; el lector no reconocía productos ni cliente. El teléfono además leyó 4 en vez de 6 minutos.
+- ✅ Acepta "1Por", "1x" y "1×"; "Cliente" y "Customer".
+- ✅ Segunda lectura de verificación de MINUTOS y NÚMERO DE ORDEN (sólo dígitos); si no coincide, usa la verificada y avisa.
+- ✅ Quita la letra suelta del ícono del cliente ("A Niky Garzón" → "Niky Garzón").
+- ✅ #160: 160 · Niky Garzón · 6 min · Promo 2 (nota: Salsa agria (extra)).
+- ✅ #148, #154, #159 y variantes siguen correctas, también a media resolución.

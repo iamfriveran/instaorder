@@ -67,6 +67,51 @@ export async function runOcr(image, onProgress) {
   };
 }
 
+/**
+ * Segunda lectura sólo de un número (minutos u orden): recorta la zona y la lee con
+ * el modelo restringido a dígitos y "#". Corrige confusiones como 6 → 4 o # → 4.
+ */
+export async function ocrDigits(image, bbox, pad = 18) {
+  if (!workerPromise || !bbox) return null;
+  const worker = await workerPromise;
+  try {
+    await worker.setParameters({ tessedit_char_whitelist: "#0123456789", tessedit_pageseg_mode: "7" });
+    const { data } = await worker.recognize(image, { rectangle: {
+      left: Math.max(0, bbox.x0 - pad), top: Math.max(0, bbox.y0 - pad),
+      width: bbox.x1 - bbox.x0 + pad * 2, height: bbox.y1 - bbox.y0 + pad * 2,
+    } });
+    return { text: data.text.replace(/\s+/g, ""), conf: data.confidence };
+  } catch { return null; }
+  finally {
+    // Volver a la lectura normal (bloque de texto, todos los caracteres).
+    await worker.setParameters({ tessedit_char_whitelist: "", tessedit_pageseg_mode: "6" }).catch(() => {});
+  }
+}
+
+/**
+ * Lectura completa + verificación de los dos números críticos.
+ * Si la segunda lectura no coincide, se usa la más confiable y se pide verificar.
+ */
+export async function readPedidosYa(image, catalog, onProgress) {
+  const ocr = await runOcr(image, onProgress);
+  const r = parsePedidosYa(ocr, catalog);
+  onProgress && onProgress({ status: "verifying", progress: 0.95 });
+  const m = await ocrDigits(image, r.boxes.minutes);
+  const mv = m && /^\d{1,3}$/.test(m.text) ? Number(m.text) : null;
+  if (mv && mv >= 1 && mv <= 180 && mv !== r.preparationMinutes) {
+    r.warnings.push(`Verifica el TIEMPO: se leyó ${r.preparationMinutes ?? "?"} y luego ${mv} min. Se usó ${mv}.`);
+    r.preparationMinutes = mv;
+    r.found.minutesVerified = false;
+  } else if (mv) r.found.minutesVerified = true;
+  const n = await ocrDigits(image, r.boxes.orderNumber);
+  const nv = n && /^#?\d{1,6}$/.test(n.text) ? n.text.replace(/^#/, "") : null;
+  if (nv && r.platformOrderNumber && nv !== r.platformOrderNumber && n.text.startsWith("#")) {
+    r.warnings.push(`Verifica el NÚMERO DE ORDEN: se leyó #${r.platformOrderNumber} y luego #${nv}. Se usó #${nv}.`);
+    r.platformOrderNumber = nv;
+  }
+  return r;
+}
+
 function imageSize(image) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -169,7 +214,9 @@ export function matchProduct(text, catalog) {
 /* ------------------------------------------------------------------ */
 
 const STOP_LINE = /^(facturar|nro|email|subtotal|total|medio de pago|env[ií]o|costo|descuento|propina|el pedido|\d+\s*productos?\b|comentario|nota del cliente|cup[oó]n)/i;
-const ITEM_START = /^\s*([0-9Il|]{1,2})\s*P[o0]r\b\s*(.*)$/i;
+// Cantidad del producto: "1Por" (formato anterior) o "1x" / "1×" (formato nuevo de PedidosYa).
+const ITEM_START = /^\s*([0-9Il|]{1,2})\s*(?:[Pp][o0]r\b|[xX×](?=\s))\s*(.*)$/;
+const QTY_WORD = /^[0-9Il|]{0,2}(?:P[o0]r|[xX×])$/;
 const PRICE_TAIL = /\s*\$?\s*\d{1,4}[.,]\d{1,2}\s*\S{0,2}\s*$/;
 
 const cx = (b) => (b.x0 + b.x1) / 2;
@@ -187,7 +234,7 @@ function findPrepMinutes(ocr, H) {
     if (cands[0]) {
       const c = cands[0].bbox;
       const line = ocr.lines.find((l) => c.y0 >= l.bbox.y0 - 5 && c.y1 <= l.bbox.y1 + 5);
-      return { value: Number(cands[0].text), conf: cands[0].conf, method: "control", line };
+      return { value: Number(cands[0].text), conf: cands[0].conf, method: "control", line, bbox: c };
     }
   }
   // Respaldo: patrón "− 11 +" en una línea superior.
@@ -209,7 +256,7 @@ function findPrepMinutes(ocr, H) {
 function findOrderNumber(ocr, H, minutesLine) {
   const top = H ? H * 0.45 : Infinity;
   const w = ocr.words.find((x) => /^#\d{1,6}$/.test(x.text) && x.bbox.y0 < top);
-  if (w) return { value: w.text.slice(1), sure: true };
+  if (w) return { value: w.text.slice(1), sure: true, bbox: w.bbox };
   for (const l of ocr.lines) {
     if (H && l.bbox.y0 > top) continue;
     const m = l.text.match(/#\s?(\d{1,6})\b/);
@@ -235,11 +282,13 @@ const BAD_NAME = /@|pedidosya|invoices|\d{3,}|repartidor|facturar/i;
 
 function findCustomer(ocr, H) {
   // Etiqueta "Cliente" (puede venir con un ícono leído como letra: "a Cliente").
-  const idx = ocr.lines.findIndex((l) => /^.{0,3}\bcliente\s*:?\s*$/i.test(l.text) && (!H || l.bbox.y0 < H * 0.6));
+  const idx = ocr.lines.findIndex((l) => /^.{0,3}\b(cliente|customer)\s*:?\s*$/i.test(l.text) && (!H || l.bbox.y0 < H * 0.6));
   let name = "";
   if (idx >= 0 && ocr.lines[idx + 1]) {
     // Quita el ícono leído como "5 " o ">. " al inicio.
     name = ocr.lines[idx + 1].text.replace(/^(?:[^A-Za-zÁÉÍÓÚÑáéíóúñ]+|[A-Za-z]\W\s)+/, "").trim();
+    // El ícono de la persona a veces se lee como una letra suelta: "A Niky Garzón".
+    name = name.replace(/^[A-Za-z]\s+(?=[A-ZÁÉÍÓÚÑ][a-záéíóúñ])/, "");
     if (BAD_NAME.test(name)) name = "";
   }
   const masked = !name || /x{2,}/i.test(name);
@@ -272,7 +321,7 @@ function findItems(ocr, catalog, customerLineIdx) {
   // Posición horizontal del "1Por" de cada línea de producto. Los productos principales
   // empiezan a la izquierda; las OPCIONES de un producto (recuadro "Elige tu salsa /
   // Extra / 1Por Salsa cheddar") empiezan bastante más a la derecha.
-  const porX = (l) => ocr.words.find((w) => /^[0-9Il|]{0,2}P[o0]r$/i.test(w.text) && Math.abs((w.bbox.y0 + w.bbox.y1) / 2 - (l.bbox.y0 + l.bbox.y1) / 2) < 30)?.bbox.x0 ?? l.bbox.x0;
+  const porX = (l) => ocr.words.find((w) => QTY_WORD.test(w.text) && Math.abs((w.bbox.y0 + w.bbox.y1) / 2 - (l.bbox.y0 + l.bbox.y1) / 2) < 30)?.bbox.x0 ?? l.bbox.x0;
   const starts = lines.slice(Math.max(0, customerLineIdx)).filter((l) => ITEM_START.test(l.text)).map(porX);
   const mainX = starts.length ? Math.min(...starts) : 0;
   const indentLimit = mainX + Math.max(60, (ocr.width || 900) * 0.07);
@@ -283,7 +332,7 @@ function findItems(ocr, catalog, customerLineIdx) {
     const qty = Number(m[1].replace(/[Il|]/g, "1")) || 1;
     const isModifier = items.length > 0 && porX(lines[i]) > indentLimit;
     let text = (lineTextNoPrice(ocr, lines[i]).match(ITEM_START)?.[2] ?? m[2]).replace(PRICE_TAIL, "").trim();
-    const startWord = ocr.words.find((w) => /P[o0]r$/i.test(w.text) && Math.abs(w.bbox.y0 - lines[i].bbox.y0) < 25);
+    const startWord = ocr.words.find((w) => QTY_WORD.test(w.text) && Math.abs(w.bbox.y0 - lines[i].bbox.y0) < 25);
     const textX = startWord ? startWord.bbox.x1 : lines[i].bbox.x0 + 80;
     let j = i + 1;
     for (; j < lines.length; j++) {
@@ -340,7 +389,7 @@ export function parsePedidosYa(raw, catalog) {
   const warnings = [];
 
   // El logo de PedidosYa no es texto; el formato "1Por …" de los productos sí lo identifica.
-  const isPY = /pedidos\s?ya|pedidosya/i.test(all) || /\dP[o0]r\b/i.test(all);
+  const isPY = /pedidos\s?ya|pedidosya/i.test(all) || /\dP[o0]r\b/i.test(all) || /^\s*\d\s?[x×]\s/m.test(all);
   if (!isPY) warnings.push("La captura no parece de PedidosYa: confirma la plataforma.");
 
   const min = findPrepMinutes(ocr, H);
@@ -354,7 +403,7 @@ export function parsePedidosYa(raw, catalog) {
   if (!cust) warnings.push("No se reconoció el nombre del cliente.");
   else if (cust.masked) warnings.push("El nombre del cliente aparece oculto en la captura.");
 
-  const custIdx = cust?.idx ?? ocr.lines.findIndex((l) => /cliente/i.test(l.text));
+  const custIdx = cust?.idx ?? ocr.lines.findIndex((l) => /cliente|customer/i.test(l.text));
   const items = findItems(ocr, catalog, custIdx);
   if (!items.length) warnings.push("No se reconocieron productos. Agrégalos manualmente.");
   items.forEach((it) => {
@@ -369,6 +418,7 @@ export function parsePedidosYa(raw, catalog) {
     preparationMinutes: min && min.value >= 1 && min.value <= 180 ? min.value : null,
     items,
     warnings,
+    boxes: { minutes: min?.bbox || null, orderNumber: num?.bbox || null },
     found: { orderNumber: !!num, orderNumberSure: !!num?.sure, minutes: !!min, customer: !!cust, minutesMethod: min?.method || null },
   };
 }

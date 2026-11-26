@@ -28,7 +28,7 @@ import { IngredientsScreen } from "./js/availability.js";
 import { showLogin, watchMyProfile } from "./js/auth.js";
 import { initInstall, installButtonHtml, startInstall, onInstallChange, HelpScreen } from "./js/install.js";
 
-export const APP_VERSION = "1.4.3";
+export const APP_VERSION = "1.4.4";
 
 /* ------------------------------------------------------------------ */
 /* Pantalla de inicio                                                  */
