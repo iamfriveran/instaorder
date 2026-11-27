@@ -30,6 +30,26 @@ const LAST_KEY = "instaorder.waLast";
 const money = (n) => "$" + (Math.round((Number(n) || 0) * 100) / 100).toFixed(2);
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
+/* ---------- Promociones del día (sólo WhatsApp) ----------
+ * Precio especial únicamente para los productos listados (por id del catálogo).
+ */
+export const PROMOS = {
+  mon: { label: "Lunes de Quesadilla", short: "Lunes", icon: "🧀", price: 2,
+    ids: ["p-quesadilla-queso", "p-quesadilla-res", "p-quesadilla-pollo", "p-quesadilla-pastor", "p-quesadilla-campechano"] },
+  tue: { label: "Martes de Burritos", short: "Martes", icon: "🌯", price: 2,
+    ids: ["p-burrito-clasico-res", "p-burrito-clasico-pollo", "p-burrito-clasico-pastor"] },
+  wed: { label: "Miércoles de Tacos", short: "Miércoles", icon: "🌮", price: 1,
+    ids: ["p-taco-carne-de-res", "p-taco-pollo", "p-taco-al-pastor"] },
+};
+const todayPromo = () => ({ 1: "mon", 2: "tue", 3: "wed" })[new Date().getDay()] || "";
+const basePrice = (pid) => { const p = state.catalog.products.find((x) => x.id === pid); return typeof p?.referencePrice === "number" ? p.referencePrice : 0; };
+const promoFor = (pid, day) => (PROMOS[day] && PROMOS[day].ids.includes(pid) ? PROMOS[day] : null);
+export const priceFor = (pid, day) => (promoFor(pid, day) ? promoFor(pid, day).price : basePrice(pid));
+/** Recalcula el precio de cada línea según la promo elegida. */
+function repriceAll(d) {
+  for (const i of d.items) { i.basePrice = basePrice(i.productId); i.unitPrice = priceFor(i.productId, d.promoDay); i.promo = !!promoFor(i.productId, d.promoDay); }
+}
+
 let root = null;
 let view = null;
 let ui = { category: null, search: "" };
@@ -39,7 +59,7 @@ let sending = false;
 
 function emptyDraft() {
   return { phone: "", customerName: "", preparationMinutes: 20, receivedAt: Date.now(), items: [], generalNotes: "",
-    extraCharge: 0, extraLabel: "Envío", totalText: "", totalTextCustom: false };
+    extraCharge: 0, extraLabel: "Envío", totalText: "", totalTextCustom: false, promoDay: todayPromo() };
 }
 const getDraft = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)) || null; } catch { return null; } };
 const saveDraft = (d) => localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
@@ -134,6 +154,10 @@ function mountBuilder() {
         </div>
         <span class="wa-target" id="wa-target"></span>
       </div>
+      <div class="wa-promo">
+        <span class="x-lbl">PROMOCIÓN DEL DÍA</span>
+        <div class="wa-promo-chips" id="w-promos"></div>
+      </div>
     </section>
     <div class="builder-top">
       <div class="search-wrap"><input class="field search" type="search" placeholder="🔎 Buscar producto…" data-w="search" autocomplete="off"></div>
@@ -142,7 +166,16 @@ function mountBuilder() {
     <div class="product-list" id="w-products"></div>
   </main>
   <div class="order-bar" id="w-bar"></div>`;
-  renderTarget(); renderCats(); renderProducts(); renderBar();
+  renderPromos(); renderTarget(); renderCats(); renderProducts(); renderBar();
+}
+
+function renderPromos() {
+  const el = $("#w-promos", root); if (!el) return;
+  const d = draft();
+  const today = todayPromo();
+  el.innerHTML = `<button class="wa-pchip ${!d.promoDay ? "on" : ""}" data-action="w-promo" data-day="">Sin promo</button>` +
+    Object.entries(PROMOS).map(([k, p]) => `<button class="wa-pchip ${d.promoDay === k ? "on" : ""}" data-action="w-promo" data-day="${k}">
+      <span>${p.icon} ${p.short}${k === today ? " · hoy" : ""}</span><small>${esc(p.label.replace(/^\S+ de /, ""))} a ${money(p.price)}</small></button>`).join("");
 }
 
 function renderTarget() {
@@ -174,7 +207,9 @@ function renderProducts() {
       <button class="p-main" data-action="w-add" data-pid="${esc(p.id)}" ${st.available ? "" : 'aria-disabled="true"'}>
         <span class="p-name">${esc(p.name)}</span>
         ${p.description ? `<span class="p-desc">${esc(p.description)}</span>` : ""}
-        <span class="p-meta"><span class="p-price wa-price">${typeof p.referencePrice === "number" ? money(p.referencePrice) : "Sin precio"}</span></span>
+        <span class="p-meta">${promoFor(p.id, d.promoDay)
+          ? `<span class="p-price wa-price wa-was">${money(p.referencePrice)}</span><span class="p-price wa-price wa-promo-price">🎉 ${money(promoFor(p.id, d.promoDay).price)}</span>`
+          : `<span class="p-price wa-price">${typeof p.referencePrice === "number" ? money(p.referencePrice) : "Sin precio"}</span>`}</span>
         ${!st.available ? `<span class="p-unavail">🔴 Producto no disponible · Agotado: ${esc(st.missing.join(", "))}</span>` : ""}
         ${st.available && st.optionalMissing.length ? `<span class="p-limited">⚠️ Sin ${esc(st.optionalMissing.join(", ").toLowerCase())} (agotado)</span>` : ""}
       </button>
@@ -203,7 +238,7 @@ function changeQty(pid, delta) {
     const line = d.items.find((i) => i.productId === pid);
     if (line) line.quantity++;
     else d.items.push({ productId: p.id, productName: p.name, category: categoryById(p.categoryId)?.name || "",
-      unitPrice: typeof p.referencePrice === "number" ? p.referencePrice : 0, quantity: 1, notes: "" });
+      basePrice: basePrice(p.id), unitPrice: priceFor(p.id, d.promoDay), promo: !!promoFor(p.id, d.promoDay), quantity: 1, notes: "" });
   } else {
     const lines = d.items.filter((i) => i.productId === pid);
     const last = lines[lines.length - 1];
@@ -239,6 +274,7 @@ function renderSummary() {
       <div class="tk-table wa-color">💬 WHATSAPP</div>
       <div class="tk-waiter"><b>${esc(d.customerName || "Sin nombre")}</b> · ${esc(d.phone || "sin número")}</div>
       <div class="tk-waiter">⏱ ${d.preparationMinutes || "?"} min${tgt ? ` · listo aprox. <b>${fmtTime(tgt)}</b>` : ""}</div>
+      ${PROMOS[d.promoDay] ? `<div class="wa-promo-tag">${PROMOS[d.promoDay].icon} ${esc(PROMOS[d.promoDay].label)} · ${money(PROMOS[d.promoDay].price)}</div>` : ""}
     </div>
     ${d.items.map((it, i) => {
       const p = state.catalog.products.find((x) => x.id === it.productId);
@@ -248,7 +284,7 @@ function renderSummary() {
         ${st && st.available && st.optionalMissing.length ? `<div class="line-limited">⚠️ Se enviará ${esc(optionalNote(st.optionalMissing))}</div>` : ""}
         <div class="line-row">
           <div class="line-qty">${it.quantity} ×</div>
-          <div class="line-name">${esc(it.productName)}<div class="wa-unit">${money(it.unitPrice)} c/u</div></div>
+          <div class="line-name">${esc(it.productName)}<div class="wa-unit">${money(it.unitPrice)} c/u${it.promo ? ` <span class="wa-promo-mini">🎉 promo · antes ${money(it.basePrice)}</span>` : ""}</div></div>
           <div class="wa-sub">${money(it.unitPrice * it.quantity)}</div>
         </div>
         <div class="line-tools">
@@ -297,7 +333,7 @@ export async function renderOrderImage(data) {
   const W = 1080, pad = 70;
   const items = data.items || [];
   const lineH = 86;
-  const H = 520 + items.length * lineH + (data.extraCharge ? 70 : 0) + 420;
+  const H = 520 + items.length * lineH + (data.extraCharge ? 70 : 0) + (data.promoLabel ? 56 : 0) + 420;
   const c = document.createElement("canvas");
   c.width = W; c.height = H;
   const g = c.getContext("2d");
@@ -321,6 +357,7 @@ export async function renderOrderImage(data) {
   g.textAlign = "center"; g.fillStyle = "#E2007A"; g.font = disp(54); g.fillText("Resumen de tu pedido", W / 2, y);
   y += 56; g.fillStyle = "#1D1530"; g.font = font(700, 34);
   g.fillText(`${data.customerName || "Cliente"}${data.when ? " · " + data.when : ""}`, W / 2, y);
+  if (data.promoLabel) { y += 52; g.fillStyle = "#E2007A"; g.font = font(800, 32); g.fillText(`🎉 ${data.promoLabel}`, W / 2, y); }
   y += 40;
   g.strokeStyle = "#E4DDEF"; g.lineWidth = 3; g.setLineDash([12, 10]); g.beginPath(); g.moveTo(pad, y); g.lineTo(W - pad, y); g.stroke(); g.setLineDash([]);
   y += 30;
@@ -335,7 +372,7 @@ export async function renderOrderImage(data) {
     if (name !== it.productName) name = name.trim() + "…";
     g.fillText(name, pad + 96, y);
     g.textAlign = "right"; g.fillText(money(it.unitPrice * it.quantity), W - pad, y); g.textAlign = "left";
-    g.fillStyle = "#6B6280"; g.font = font(600, 24); g.fillText(`${money(it.unitPrice)} c/u`, pad + 96, y + 30);
+    g.fillStyle = "#6B6280"; g.font = font(600, 24); g.fillText(`${money(it.unitPrice)} c/u${it.promo ? " · promo" : ""}`, pad + 96, y + 30);
     y += lineH - 52;
   }
   if (data.extraCharge) {
@@ -372,6 +409,7 @@ export function waNumber(phone) {
 
 function summaryText(data) {
   return [`¡Hola ${data.customerName || ""}! 🌮 Este es el resumen de tu pedido en Takolandia:`, "",
+    ...(data.promoLabel ? [`🎉 ${data.promoLabel}`, ""] : []),
     ...data.items.map((i) => `${i.quantity}× ${i.productName} — ${money(i.unitPrice * i.quantity)}`),
     ...(data.extraCharge ? [`${data.extraLabel || "Envío"} — ${money(data.extraCharge)}`] : []),
     "", data.totalText, ...(data.minutes ? [`⏱ Tiempo estimado: ${data.minutes} min`] : []), "", "¡Gracias por tu pedido!"].join("\n");
@@ -385,6 +423,7 @@ function shareData(d) {
     customerName: d.customerName, phone: d.phone, items: d.items.map((i) => ({ ...i })),
     extraCharge: t.extra, extraLabel: d.extraLabel, total: t.total, totalText: totalText(d),
     minutes: d.preparationMinutes, readyAt: tgt ? fmtTime(tgt) : "", when: fmtTime(d.receivedAt),
+    promoLabel: d.items.some((i) => i.promo) && PROMOS[d.promoDay] ? PROMOS[d.promoDay].label : "",
   };
 }
 
@@ -486,6 +525,8 @@ async function onClick(e) {
     case "w-min": { const d = draft(); d.preparationMinutes = Math.max(5, Math.min(180, (d.preparationMinutes || 0) + Number(b.dataset.d))); saveDraft(d);
       const inp = $("[data-w=preparationMinutes]", root); if (inp) inp.value = d.preparationMinutes; renderTarget(); break; }
     case "w-cat": ui.category = b.dataset.id; ui.search = ""; { const s = $("[data-w=search]", root); if (s) s.value = ""; } renderCats(); renderProducts(); break;
+    case "w-promo": { const d = draft(); d.promoDay = b.dataset.day || ""; repriceAll(d); saveDraft(d); renderPromos(); renderProducts(); renderBar();
+      const p = PROMOS[d.promoDay]; toast(p ? `${p.icon} ${p.label}: ${money(p.price)} aplicado` : "Precios normales", "info"); break; }
     case "w-add": changeQty(b.dataset.pid, +1); break;
     case "w-dec": changeQty(b.dataset.pid, -1); break;
     case "w-review": go("whatsapp/resumen"); break;

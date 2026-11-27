@@ -740,3 +740,17 @@ body[data-screen="historial"] { background: var(--cream); }
 .ra-wa .ra-btn { background: var(--wa); box-shadow: 0 5px 0 var(--wa-dark); }
 .h-card.h-wa { border-left-color: var(--wa); }
 @media (max-width: 640px) { .wa-builder .builder-top { top: 58px; } }
+
+/* ---- v1.5.1 Promoción del día (WhatsApp) ---- */
+.wa-promo { margin-top: 12px; }
+.wa-promo-chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 6px; }
+@media (min-width: 700px) { .wa-promo-chips { grid-template-columns: repeat(4, 1fr); } }
+.wa-pchip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 52px; padding: 8px 12px;
+  border: 2px solid var(--wa-50); border-radius: 14px; background: #fff; font: inherit; font-weight: 800; color: var(--ink, #1D1530); text-align: left; cursor: pointer; }
+.wa-pchip small { font-weight: 600; font-size: 12px; opacity: .75; }
+.wa-pchip.on { background: var(--wa); border-color: var(--wa-dark); color: #fff; }
+.wa-pchip.on small { opacity: .95; }
+.wa-was { text-decoration: line-through; opacity: .5; margin-right: 6px; }
+.wa-promo-price { color: #E2007A; font-weight: 900; }
+.wa-promo-tag { display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 999px; background: #FDE4F1; color: #B0005F; font-weight: 800; font-size: 14px; }
+.wa-promo-mini { color: #E2007A; font-weight: 700; }

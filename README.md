@@ -620,3 +620,10 @@ Versión 1.5.0. **Pedidos externos** ahora tiene dos opciones:
 ### Para activarlo
 1. **Realtime Database › Rules**: pega el nuevo `database.rules.json` › **Publish** (permite celular y montos en pedidos de WhatsApp).
 2. Sube los archivos a GitHub.
+
+### 19.1 Promoción del día (sólo WhatsApp)
+En "Ingreso manual" de WhatsApp elige **Sin promo / Lunes / Martes / Miércoles**. El día actual queda preseleccionado.
+- Lunes de Quesadilla $2: Quesadilla Queso, Res, Pollo, Pastor, Campechano.
+- Martes de Burritos $2: Burrito Clásico Res, Pollo, Pastor.
+- Miércoles de Tacos $1: Taco Carne de Res, Pollo, Al Pastor.
+Para cambiar precios o productos de la promo, editar `PROMOS` al inicio de `js/whatsapp.js`.

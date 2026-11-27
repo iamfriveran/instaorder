@@ -149,3 +149,10 @@ Causa: PedidosYa cambió "1Por" por "1x" y "Cliente" por "Customer"; el lector n
 - ✅ Productos con ingrediente agotado bloqueados también en WhatsApp.
 - ✅ Regresión: 37/37, pedidos externos (OCR), ingredientes, bebidas, atajo 🏠.
 - [ ] Probar "Compartir → WhatsApp" en un teléfono real (Android/iPhone).
+
+## v1.5.1 — Promoción del día en Pedidos por WhatsApp (27-nov-2026, modo demo)
+- ✅ Selector: Sin promo · Lunes (Quesadilla $2) · Martes (Burritos $2) · Miércoles (Tacos $1); se preselecciona el día de hoy si es lunes a miércoles.
+- ✅ Sólo aplica a: Quesadilla Queso/Res/Pollo/Pastor/Campechano; Burrito Clásico Res/Pollo/Pastor; Taco Carne de Res/Pollo/Al Pastor. Quesadilla Birria, Burritos Gratinados, etc. mantienen su precio.
+- ✅ Pedido de prueba (2 Quesadilla Res, 1 Quesadilla Birria, 1 Burrito Clásico Pollo, 3 Taco Pollo): Sin promo $23.50 · Lunes $20.00 · Martes $21.75 · Miércoles $19.00.
+- ✅ Cambiar de día recalcula todo el pedido; resumen muestra "promo · antes $x"; imagen y mensaje muestran el nombre de la promo; total guardado correcto.
+- ✅ Regresión WhatsApp v1.5.0 y 37/37.
