@@ -18,7 +18,7 @@
  * actualizar la app no borra órdenes.
  */
 
-const CACHE_VERSION = "instaorder-v1.4.4";
+const CACHE_VERSION = "instaorder-v1.5.0";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -43,6 +43,7 @@ const APP_SHELL = [
   "./js/store.js",
   "./js/ui.js",
   "./js/waiter.js",
+  "./js/whatsapp.js",
   "./assets/logo.png",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",

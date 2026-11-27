@@ -138,3 +138,14 @@ Causa: PedidosYa cambió "1Por" por "1x" y "Cliente" por "Customer"; el lector n
 - ✅ Quita la letra suelta del ícono del cliente ("A Niky Garzón" → "Niky Garzón").
 - ✅ #160: 160 · Niky Garzón · 6 min · Promo 2 (nota: Salsa agria (extra)).
 - ✅ #148, #154, #159 y variantes siguen correctas, también a media resolución.
+
+## v1.5.0 — Pedidos por WhatsApp (27-nov-2026, modo demo)
+- ✅ Pedidos externos › dos opciones: PEDIDOS YA (subir captura / ingreso manual) y PEDIDOS POR WHATSAPP (ingreso manual).
+- ✅ Celular, nombre, tiempo (− / + de 5 min), productos con pestañas de categorías y buscador, con precio.
+- ✅ Total: Promo 2 ($7.99) + 2 Horchata ($1.25) = $10.49; + envío $1.50 = $11.99. Texto del total editable ("· pago en efectivo").
+- ✅ Imagen del pedido (1080 px) con logo, productos, precios, envío, total y tiempo; en computadora se descarga y abre wa.me/5939…; en teléfono usa Compartir.
+- ✅ 0991234567, 991234567 y +593 99 123 4567 → 593991234567.
+- ✅ Cocina recibe WHATSAPP #1001 en verde, sin precios, con cuenta regresiva; alerta de despacho al mesero; historial con filtro WhatsApp y total.
+- ✅ Productos con ingrediente agotado bloqueados también en WhatsApp.
+- ✅ Regresión: 37/37, pedidos externos (OCR), ingredientes, bebidas, atajo 🏠.
+- [ ] Probar "Compartir → WhatsApp" en un teléfono real (Android/iPhone).

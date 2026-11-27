@@ -23,7 +23,8 @@ import { submitOrder, outboxEntries, processOutbox } from "./outbox.js";
 import { getWaiter, deviceId } from "./store.js";
 import { readPedidosYa, matchProduct, PLATFORMS, norm } from "./pedidosya.js";
 import { productStatus, checkItems, optionalNote } from "./availability.js";
-import { $, esc, toast, confirmDialog, dialog, fmtTime, fmtDateTime, orderTitle, orderLabel, isExternal } from "./ui.js";
+import { $, esc, toast, confirmDialog, dialog, fmtTime, fmtDateTime, orderTitle, orderLabel, isExternal, PLATFORM_LABELS } from "./ui.js";
+import { shareWhatsAppSummary, getLastWa } from "./whatsapp.js";
 
 const DRAFT_KEY = "instaorder.extDraft";
 let root = null;
@@ -68,12 +69,13 @@ export const ExternalScreen = {
     root.addEventListener("change", onChange);
     const [a, b] = params;
     if (a === "revisar") mountReview();
+    else if (a === "pedidosya") mountPYMenu();
     else if (a === "enviado" && b) mountSent(b);
     else mountPanel();
   },
   update() {
     if (!root) return;
-    if (view === "panel") renderPanel();
+    if (view === "panel" || view === "pymenu") renderPanel();
     else if (view === "sent") renderSent();
   },
   unmount() {
@@ -88,16 +90,31 @@ const header = (back) => appHeader({ subtitle: "Pedidos externos", back }) + dem
 
 /* ---------- Panel ---------- */
 
+/* Menú principal: elegir el origen del pedido externo. */
 function mountPanel() {
   view = "panel";
-  const d = getDraft();
   root.innerHTML = `${header("x-home")}
+  <main class="screen ext-panel">
+    <div class="ext-choices">
+      <button class="ext-choice ch-py" data-action="x-py"><span class="ec-ico">🛵</span><span><b>PEDIDOS YA</b><small>Subir captura de pantalla · Ingreso manual</small></span></button>
+      <button class="ext-choice ch-wa" data-action="x-wa"><span class="ec-ico">💬</span><span><b>PEDIDOS POR WHATSAPP</b><small>Ingreso manual · con precios y total</small></span></button>
+    </div>
+    <div id="ext-lists"></div>
+  </main>`;
+  renderPanel();
+}
+
+/* Submenú PedidosYa. */
+function mountPYMenu() {
+  view = "pymenu";
+  const d = getDraft();
+  root.innerHTML = `${header("x-panel")}
   <main class="screen ext-panel">
     <section class="ext-hero">
       <div class="ext-badge-lg">🛵 PEDIDOS YA</div>
-      <label class="btn btn-ext btn-xl file-btn">📸 SUBIR CAPTURA
+      <label class="btn btn-ext btn-xl file-btn">📸 SUBIR CAPTURA DE PANTALLA
         <input type="file" accept="image/png,image/jpeg,image/webp,image/*" data-file hidden></label>
-      <button class="btn btn-ghost" data-action="x-manual">✍️ Ingresar sin captura</button>
+      <button class="btn btn-ghost btn-lg" data-action="x-manual">✍️ INGRESO MANUAL</button>
       ${d ? `<button class="btn btn-yellow" data-action="x-resume">↩︎ Continuar orden en revisión${d.platformOrderNumber ? ` #${esc(d.platformOrderNumber)}` : ""}</button>` : ""}
       <p class="muted small">La captura se lee en este teléfono y no se guarda ni se envía a ningún servicio.</p>
     </section>
@@ -108,8 +125,8 @@ function mountPanel() {
 
 function extCard(o, mode) {
   const late = o.targetReadyAt && dataService.now() > o.targetReadyAt;
-  return `<div class="mo-card ext-card ${mode === "ready" ? "st-ready" : o.status === "ACCEPTED" ? "st-preparing" : "st-sent"}">
-    <div class="mo-top"><span class="ext-pill">PEDIDOS YA</span><b>#${esc(o.platformOrderNumber)}</b>
+  return `<div class="mo-card ext-card ${o.sourcePlatform === "WHATSAPP" ? "ext-wa" : ""} ${mode === "ready" ? "st-ready" : o.status === "ACCEPTED" ? "st-preparing" : "st-sent"}">
+    <div class="mo-top"><span class="ext-pill ${o.sourcePlatform === "WHATSAPP" ? "pill-wa" : ""}">${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}</span><b>#${esc(o.platformOrderNumber)}</b>
       <span class="status-chip ${mode === "ready" ? "st-ready" : o.status === "ACCEPTED" ? "st-preparing" : "st-sent"}">${mode === "ready" ? "Listo para despachar" : o.status === "ACCEPTED" ? "En preparación" : "Enviada a cocina"}</span></div>
     ${o.customerName ? `<div class="mo-meta">👤 ${esc(o.customerName)}</div>` : ""}
     <div class="mo-items">${o.items.map((i) => `${i.quantity}× ${esc(i.productName)}`).join(" · ")}</div>
@@ -125,7 +142,7 @@ function renderPanel() {
   const ready = ext.filter((o) => o.status === "COMPLETED" && o.waiterNotification?.status !== "ACKNOWLEDGED");
   const queued = outboxEntries().filter((e) => e.order.orderType === "THIRD_PARTY");
   const html = (queued.length ? `<h3 class="sec">⏳ Sin enviar (este teléfono)</h3>` + queued.map((e) => `
-      <div class="mo-card st-pending"><div class="mo-top"><span class="ext-pill">PEDIDOS YA</span><b>#${esc(e.order.platformOrderNumber)}</b>
+      <div class="mo-card st-pending"><div class="mo-top"><span class="ext-pill ${e.order.sourcePlatform === "WHATSAPP" ? "pill-wa" : ""}">${esc(PLATFORM_LABELS[e.order.sourcePlatform] || "")}</span><b>${e.order.platformOrderNumber ? "#" + esc(e.order.platformOrderNumber) : esc(e.order.customerName || "")}</b>
       <span class="status-chip st-pending">${e.state === "FAILED" ? "Error" : e.state === "SENDING" ? "Enviando…" : "NO ENVIADA"}</span></div>
       <button class="btn btn-sm btn-primary" data-action="x-retry">Reintentar envío</button></div>`).join("") : "")
     + `<h3 class="sec">🟢 Listos para despachar (${ready.length})</h3>` + (ready.map((o) => extCard(o, "ready")).join("") || `<p class="empty small">Ninguno.</p>`)
@@ -139,7 +156,7 @@ function renderPanel() {
 function mountReview() {
   view = "review";
   if (!getDraft()) saveDraft(emptyDraft());
-  root.innerHTML = `${header("x-panel")}
+  root.innerHTML = `${header("x-py")}
   <main class="screen ext-review">
     <section class="s-card ext-img-card" id="x-img"></section>
     <section class="s-card" id="x-form"></section>
@@ -433,10 +450,13 @@ function renderSent() {
       <p class="muted">Cocina AÚN NO la ha recibido. Se enviará al recuperar la conexión, sin duplicarse.</p>
       ${q.state === "FAILED" ? `<button class="btn btn-primary btn-lg" data-action="x-retry">Reintentar</button>` : ""}</div>`
     : `<div class="sent-card ok"><div class="sent-ico">✅</div><h2>ENVIADA A COCINA</h2>
+      ${o?.sourcePlatform === "WHATSAPP" && getLastWa()?.orderId === sentId ? `<button class="btn btn-wa btn-lg" data-action="x-wa-share">📲 Enviar resumen al cliente</button>` : ""}
       <p class="sent-num">${o ? esc(orderTitle(o)) : ""}</p>
       ${o?.targetReadyAt ? `<p>Hora objetivo: <b>${fmtTime(o.targetReadyAt)}</b></p>` : ""}<p class="muted small">Confirmada por el servidor · ID ${esc(sentId)}</p></div>`)
-    + `<label class="btn btn-ext btn-xl file-btn">📸 Subir otra captura<input type="file" accept="image/*" data-file hidden></label>
-       <button class="btn btn-ghost btn-lg" data-action="x-panel">🛵 Ver pedidos externos</button>`;
+    + (o?.sourcePlatform === "WHATSAPP"
+      ? `<button class="btn btn-wa btn-xl" data-action="x-wa">💬 Nuevo pedido por WhatsApp</button>`
+      : `<label class="btn btn-ext btn-xl file-btn">📸 Subir otra captura<input type="file" accept="image/*" data-file hidden></label>`)
+    + `<button class="btn btn-ghost btn-lg" data-action="x-panel">🛵 Ver pedidos externos</button>`;
 }
 
 /* ---------- Eventos ---------- */
@@ -448,6 +468,9 @@ async function onClick(e) {
   switch (b.dataset.action) {
     case "x-home": go("inicio"); break;
     case "x-panel": go("externos"); break;
+    case "x-py": go("externos/pedidosya"); break;
+    case "x-wa": go("whatsapp"); break;
+    case "x-wa-share": shareWhatsAppSummary(getLastWa()); break;
     case "x-history": go("historial/externos"); break;
     case "x-manual": saveDraft(emptyDraft()); go("externos/revisar"); break;
     case "x-resume": go("externos/revisar"); break;
@@ -478,7 +501,7 @@ async function onClick(e) {
     }
     case "x-discard":
       if (await confirmDialog("Descartar orden", "Se borran los datos leídos y la imagen. No se envía nada a cocina.", "Descartar", "danger")) {
-        clearDraft(); dropImage(); go("externos", { replace: true });
+        clearDraft(); dropImage(); go("externos/pedidosya", { replace: true });
       }
       break;
     case "x-send": send(b); break;

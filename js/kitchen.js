@@ -65,13 +65,14 @@ function cardHtml(o) {
   const hasNotes = !!o.generalNotes || o.items.some((i) => i.notes);
   const allergy = /alerg/i.test(o.generalNotes || "") || o.items.some((i) => /alerg/i.test(i.notes || ""));
   const ext = isExternal(o);
-  return `<article class="k-card ${isNew ? "k-new" : "k-accepted"} ${o.type === "CORRECTION" ? "k-correction" : ""} ${ext ? "k-ext" : ""}" data-age="ok" data-key="${esc(o.orderId)}">
+  const wa = o.sourcePlatform === "WHATSAPP";
+  return `<article class="k-card ${wa ? "k-wa" : ""} ${isNew ? "k-new" : "k-accepted"} ${o.type === "CORRECTION" ? "k-correction" : ""} ${ext ? "k-ext" : ""}" data-age="ok" data-key="${esc(o.orderId)}">
     <div class="k-head">
       ${ext
         ? `<div class="k-table k-ext-box"><small>${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}</small>#${esc(o.platformOrderNumber)}</div>`
         : `<div class="k-table"><small>MESA</small>${tableLabel(o.tableNumber)}</div>`}
       <div class="k-info">
-        <div class="k-num">${ext ? `🛵 ${esc(o.customerName || "Cliente")}` : `ORDEN ${esc(orderLabel(o))}`}</div>
+        <div class="k-num">${ext ? `${wa ? "💬" : "🛵"} ${esc(o.customerName || "Cliente")}` : `ORDEN ${esc(orderLabel(o))}`}</div>
         <div class="k-meta">🕒 ${fmtTime(o.sentAt)} · <b class="k-elapsed" data-since="${o.sentAt || ""}"></b></div>
         <div class="k-meta">👤 ${esc(o.waiterName)} · <b>${o.itemCount ?? o.items.length} artículo(s)</b></div>
       </div>
@@ -290,6 +291,7 @@ export const HistoryScreen = {
   mount(el, params) {
     hroot = el;
     if (params?.[0] === "externos") hstate.type = "THIRD_PARTY";
+    if (params?.[0] === "whatsapp") hstate.type = "WHATSAPP";
     hstate.day = hstate.day || dayKeyOf();
     hroot.innerHTML = `${appHeader({ subtitle: "Historial de órdenes", back: "h-back" })}${demoNotice()}
     <main class="screen history">
@@ -299,7 +301,9 @@ export const HistoryScreen = {
         <label>Tipo<select class="field" data-f="type">
           <option value="" ${hstate.type === "" ? "selected" : ""}>Todas</option>
           <option value="DINE_IN" ${hstate.type === "DINE_IN" ? "selected" : ""}>🍽️ Mesa (internos)</option>
-          <option value="THIRD_PARTY" ${hstate.type === "THIRD_PARTY" ? "selected" : ""}>🛵 PedidosYa (externos)</option></select></label>
+          <option value="THIRD_PARTY" ${hstate.type === "THIRD_PARTY" ? "selected" : ""}>🛵💬 Todos los externos</option>
+          <option value="PEDIDOS_YA" ${hstate.type === "PEDIDOS_YA" ? "selected" : ""}>🛵 PedidosYa</option>
+          <option value="WHATSAPP" ${hstate.type === "WHATSAPP" ? "selected" : ""}>💬 WhatsApp</option></select></label>
         <label>Mesero<select class="field" data-f="waiter"><option value="">Todos</option>
           ${allWaiters().map((w) => `<option value="${esc(w.id)}" ${hstate.waiter === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></label>
         <label>Estado<select class="field" data-f="status">
@@ -347,7 +351,7 @@ const typeOf = (o) => (isExternal(o) ? "THIRD_PARTY" : "DINE_IN");
 
 function haystack(o) {
   return norm([
-    isExternal(o) ? `#${o.platformOrderNumber} ${o.platformOrderNumber} ${PLATFORM_LABELS[o.sourcePlatform] || ""} pedidosya ${o.customerName || ""}`
+    isExternal(o) ? `#${o.platformOrderNumber} ${o.platformOrderNumber} ${PLATFORM_LABELS[o.sourcePlatform] || ""} ${o.sourcePlatform === "WHATSAPP" ? "whatsapp" : "pedidosya"} ${o.customerName || ""} ${o.customerPhone || ""}`
       : `mesa ${o.tableNumber} mesa ${tableLabel(o.tableNumber)}`,
     o.orderNumber ? `#${o.orderNumber} ${o.orderNumber}` : "", o.orderId, o.waiterName,
     o.items.map((i) => i.productName).join(" "), o.generalNotes || "",
@@ -363,7 +367,8 @@ function filtered() {
   return hstate.orders.filter((o) => {
     if (hstate.status === "DONE" && o.status !== "COMPLETED") return false;
     if (hstate.status === "CLOSED" && !(o.status === "COMPLETED" && o.waiterNotification?.status === "ACKNOWLEDGED")) return false;
-    if (hstate.type && typeOf(o) !== hstate.type) return false;
+    if (hstate.type === "DINE_IN" || hstate.type === "THIRD_PARTY") { if (typeOf(o) !== hstate.type) return false; }
+    else if (hstate.type && o.sourcePlatform !== hstate.type) return false;
     if (hstate.waiter && o.waiterId !== hstate.waiter) return false;
     if (mesa && (isExternal(o) || o.tableNumber !== Number(mesa[1]))) return false;
     if (num && !(String(o.platformOrderNumber || "") === num[1] || String(o.orderNumber || "") === num[1] || (!isExternal(o) && String(o.tableNumber) === num[1]))) return false;
@@ -406,12 +411,14 @@ function renderHist() {
     const x = isExternal(o);
     const events = Object.values(o.events || {}).sort((a, b) => (a.at || 0) - (b.at || 0));
     const late = x && o.targetReadyAt && o.completedAt && o.completedAt > o.targetReadyAt;
-    return `<article class="h-card ${x ? "h-ext" : ""} ${open ? "open" : ""}">
+    const wa = o.sourcePlatform === "WHATSAPP";
+    return `<article class="h-card ${x ? "h-ext" : ""} ${wa ? "h-wa" : ""} ${open ? "open" : ""}">
       <button class="h-sum" data-action="h-toggle" data-id="${esc(o.orderId)}">
-        <div class="h-title">${x ? '<span class="ext-pill">PEDIDOS YA</span>' : "🍽️"} <b>${esc(x ? "#" + o.platformOrderNumber : "MESA " + tableLabel(o.tableNumber))}</b>
+        <div class="h-title">${x ? `<span class="ext-pill ${wa ? "pill-wa" : ""}">${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}</span>` : "🍽️"} <b>${esc(x ? "#" + o.platformOrderNumber : "MESA " + tableLabel(o.tableNumber))}</b>
           <span class="status-chip ${o.status === "COMPLETED" ? "st-ready" : "st-preparing"}">${finalLabel(o)}</span></div>
         <div class="h-lines">
           ${x && o.customerName ? `<span>Cliente: <b>${esc(o.customerName)}</b></span>` : ""}
+          ${wa && typeof o.totalAmount === "number" ? `<span>Total: <b>$${o.totalAmount.toFixed(2)}</b></span>` : ""}
           <span>Mesero: ${esc(o.waiterName)}</span>
           <span>${fmtDateTime(o.sentAt)}</span>
           <span>Productos: ${o.itemCount ?? o.items.length}</span>
@@ -425,7 +432,8 @@ function renderHist() {
         ${o.duplicateOverride ? `<div class="k-corr">⚠️ Registrada como duplicado confirmado</div>` : ""}
         <div class="h-grid">
           <div><small>Tipo</small>${x ? `Externo · ${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}` : "Interno · Mesa"}</div>
-          ${x ? `<div><small>Orden externa</small>#${esc(o.platformOrderNumber)}</div><div><small>Cliente</small>${esc(o.customerName || "—")}</div>`
+          ${x ? `<div><small>Orden externa</small>#${esc(o.platformOrderNumber)}</div><div><small>Cliente</small>${esc(o.customerName || "—")}${o.customerPhone ? ` · ${esc(o.customerPhone)}` : ""}</div>
+                 ${wa && typeof o.totalAmount === "number" ? `<div><small>Total cobrado</small><b>$${o.totalAmount.toFixed(2)}</b>${o.extraCharge ? ` (incluye $${Number(o.extraCharge).toFixed(2)} de envío/ajuste)` : ""}${o.totalText ? `<br><small>${esc(o.totalText)}</small>` : ""}</div>` : ""}`
             : `<div><small>Mesa</small>${tableLabel(o.tableNumber)}</div>`}
           <div><small>ID INSTAOrder</small>${esc(o.orderId)}${o.orderNumber ? ` (#${o.orderNumber})` : ""}</div>
           <div><small>${x ? "Ingresada por" : "Mesero"}</small>${esc(o.enteredBy?.name || o.waiterName)}</div>

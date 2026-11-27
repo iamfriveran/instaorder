@@ -137,7 +137,7 @@ export async function askPin(expected) {
 
 /* ---------------- Tipos de orden ---------------- */
 
-export const PLATFORM_LABELS = { PEDIDOS_YA: "PEDIDOS YA" };
+export const PLATFORM_LABELS = { PEDIDOS_YA: "PEDIDOS YA", WHATSAPP: "WHATSAPP" };
 
 /** true si es un pedido externo (PedidosYa u otra plataforma). */
 export const isExternal = (o) => o?.orderType === "THIRD_PARTY";

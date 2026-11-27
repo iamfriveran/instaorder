@@ -233,9 +233,6 @@
             ".validate": "newData.hasChildren(['type','at']) && newData.child('type').isString()"
           }
         },
-        "$other": {
-          ".validate": false
-        },
         "orderType": {
           ".validate": "newData.val() === 'DINE_IN' || newData.val() === 'THIRD_PARTY'"
         },
@@ -268,6 +265,21 @@
         },
         "enteredBy": {
           ".validate": "newData.hasChild('name')"
+        },
+        "customerPhone": {
+          ".validate": "newData.isString() && newData.val().length <= 20"
+        },
+        "totalAmount": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000"
+        },
+        "extraCharge": {
+          ".validate": "newData.isNumber()"
+        },
+        "totalText": {
+          ".validate": "newData.isString() && newData.val().length <= 120"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     },

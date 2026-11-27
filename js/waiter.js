@@ -602,7 +602,7 @@ function renderMyOrders() {
   const card = (o) => {
     const s = ORDER_STATUS[o.status] || {};
     return `<div class="mo-card ${s.cls}">
-      <div class="mo-top">${isExternal(o) ? `<span class="ext-pill">PEDIDOS YA</span><b>#${esc(o.platformOrderNumber)}</b>` : `<b>MESA ${tableLabel(o.tableNumber)}</b> <span class="mo-id">${esc(orderLabel(o))}</span>`}
+      <div class="mo-top">${isExternal(o) ? `<span class="ext-pill ${o.sourcePlatform === "WHATSAPP" ? "pill-wa" : ""}">${esc(PLATFORM_LABELS[o.sourcePlatform] || "")}</span><b>#${esc(o.platformOrderNumber)}</b>` : `<b>MESA ${tableLabel(o.tableNumber)}</b> <span class="mo-id">${esc(orderLabel(o))}</span>`}
         <span class="status-chip ${s.cls}">${isExternal(o) && o.status === "COMPLETED" ? "Listo para despachar" : s.label}</span></div>
       ${o.type === "CORRECTION" ? `<div class="mini-chip st-pending">Corrección de #${esc(o.correctionOf?.orderNumber || "")}</div>` : ""}
       <div class="mo-items">${o.items.map((i) => `${i.quantity}× ${esc(i.productName)}${i.notes ? ` <em>(${esc(i.notes)})</em>` : ""}`).join(" · ") || "(sólo nota)"}</div>
@@ -757,8 +757,8 @@ function renderAlerts() {
   layer.dataset.blink = blink;
   const html = `<div class="ra-inner">
     <div class="ra-head">${list.length > 1 ? `${list.length} PEDIDOS LISTOS` : "PEDIDO LISTO"}</div>
-    ${list.map((o) => isExternal(o) ? `<div class="ra-card ra-ext" data-id="${esc(o.orderId)}">
-      <div class="ra-platform">🛵 ${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}</div>
+    ${list.map((o) => isExternal(o) ? `<div class="ra-card ra-ext ${o.sourcePlatform === "WHATSAPP" ? "ra-wa" : ""}" data-id="${esc(o.orderId)}">
+      <div class="ra-platform">${o.sourcePlatform === "WHATSAPP" ? "💬" : "🛵"} ${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}</div>
       <div class="ra-table">ORDEN #${esc(o.platformOrderNumber)}</div>
       <div class="ra-msg">¡PEDIDO LISTO PARA DESPACHAR!</div>
       <div class="ra-order">${o.customerName ? `CLIENTE: ${esc(o.customerName)} · ` : ""}${o.itemCount || o.items.length} artículo(s)</div>

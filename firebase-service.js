@@ -530,6 +530,9 @@ class DataService {
         targetReadyAt: external.targetReadyAt,                   // receivedAt + minutos (o ajuste manual)
         targetManual: !!external.targetManual,
         duplicateOverride: !!external.duplicateOverride,
+        // Sólo pedidos por WhatsApp: celular y montos (el resto de INSTAOrder no maneja dinero).
+        ...(external.customerPhone ? { customerPhone: String(external.customerPhone).trim() } : {}),
+        ...(typeof external.totalAmount === "number" ? { totalAmount: external.totalAmount, extraCharge: external.extraCharge || 0, totalText: String(external.totalText || "").slice(0, 120) } : {}),
         ocrUsed: !!external.ocrUsed,
         enteredBy: { id: waiter.id, name: waiter.name },
       } : {}),
@@ -562,6 +565,9 @@ class DataService {
       order.orderNumber = await this.adapter.nextCounter("counters/orderNumber", ORDER_NUMBER_START);
       onNumberAssigned && onNumberAssigned(order.orderNumber);
     }
+
+    // WhatsApp no trae número de plataforma: se usa el número de INSTAOrder (#1047).
+    if (order.sourcePlatform === "WHATSAPP" && !order.platformOrderNumber) order.platformOrderNumber = String(order.orderNumber);
 
     const existing = await this.adapter.get(`orders/${order.orderId}`);
     if (existing) return { duplicatePrevented: true, order: normalizeOrder(existing) };

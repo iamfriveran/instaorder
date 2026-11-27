@@ -7,7 +7,7 @@ Sistema interno de pedidos en mesa y comunicación en tiempo real entre **mesero
 - **Firebase Authentication** (anónima o por usuario) para que la base de datos no quede abierta.
 - **GitHub Pages** como hosting y **PWA** instalable en el teléfono y la tablet.
 
-> ⚠️ INSTAOrder **no** calcula costos, subtotales, IVA ni totales. Los precios del catálogo son sólo **referenciales** para identificar productos. No es una caja registradora.
+> ⚠️ INSTAOrder **no** calcula costos ni totales en los pedidos de mesa ni de PedidosYa (los precios son sólo referenciales). **Única excepción: Pedidos por WhatsApp** (sección 19), que muestra precios y el total para informar al cliente. No es una caja registradora ni emite facturas.
 
 ---
 
@@ -31,6 +31,7 @@ Sistema interno de pedidos en mesa y comunicación en tiempo real entre **mesero
 16. [USUARIOS, CONTRASEÑAS Y ROLES](#16-usuarios-contraseñas-y-roles)
 17. [PEDIDOS EXTERNOS (PedidosYa) e HISTORIAL PERMANENTE](#17-pedidos-externos-pedidosya-e-historial-permanente)
 18. [DISPONIBILIDAD DE INGREDIENTES (productos agotados)](#18-disponibilidad-de-ingredientes-productos-agotados)
+19. [PEDIDOS POR WHATSAPP](#19-pedidos-por-whatsapp)
 
 ---
 
@@ -49,6 +50,7 @@ instaorder/
 ├── database.rules.json    Reglas de seguridad de Realtime Database
 ├── .nojekyll              Indica a GitHub Pages que sirva los archivos tal cual
 ├── js/
+│   ├── whatsapp.js        PEDIDOS POR WHATSAPP: ingreso, precios, total, imagen para el cliente
 │   ├── waiter.js          MODO MESERO (mesas, pedido, resumen, alertas "listo")
 │   ├── kitchen.js         MODO COCINA (KDS) e HISTORIAL
 │   ├── settings.js        CONFIGURACIÓN
@@ -590,4 +592,31 @@ Para corregirla: **Configuración › Catálogo** (Admin) › producto › **�
 
 ### Para activarlo
 1. **Realtime Database › Rules**: pega el nuevo `database.rules.json` › **Publish** (agrega `ingredients` e `ingredientLog`).
+2. Sube los archivos a GitHub.
+
+---
+
+## 19. PEDIDOS POR WHATSAPP
+
+Versión 1.5.0. **Pedidos externos** ahora tiene dos opciones:
+- **🛵 PEDIDOS YA** › *Subir captura de pantalla* · *Ingreso manual* (igual que antes).
+- **💬 PEDIDOS POR WHATSAPP** › *Ingreso manual*.
+
+### Ingreso manual (WhatsApp)
+1. **Número de celular**, **Nombre del cliente** y **Tiempo asignado** (− / + de 5 en 5, o escribiéndolo). Muestra "listo aprox." con la hora.
+2. **Productos** con las mismas pestañas de categorías y buscador que los pedidos de mesa, mostrando el **precio** de cada producto. Los productos con ingredientes agotados están bloqueados.
+3. **🧾 Ver pedido**: cantidades, **precio por producto**, subtotal, **envío / ajuste** (nombre y monto editables, puede ser negativo para un descuento), **TOTAL**, y el **texto del total que verá el cliente** (editable, ej. "TOTAL: $14.50 · pago en efectivo"). Notas por producto y nota general para cocina.
+4. **📲 ENVIAR AL CLIENTE**: genera una **imagen del pedido con el logo de Takolandia**, los productos, precios, el texto del total y el tiempo estimado.
+   - En el teléfono se abre el menú **Compartir**: elige **WhatsApp** y el chat del cliente (también va el resumen en texto).
+   - En una computadora se descarga la imagen y se abre el chat de WhatsApp del número con el resumen en texto, para adjuntar la imagen.
+   - El número se convierte al formato internacional de Ecuador: `09XXXXXXXX` → `5939XXXXXXXX`.
+5. **🚀 ENVIAR A COCINA**: llega como pedido externo **WHATSAPP #1047** (el número de INSTAOrder), en verde, con cuenta regresiva. **Cocina no ve precios.** Al completarlo, los meseros reciben "¡PEDIDO LISTO PARA DESPACHAR!".
+   Después del envío también se puede volver a enviar el resumen al cliente.
+
+### Precios
+- Salen del catálogo (**Configuración › Catálogo**, precio de cada producto). Para cambiar un precio, cámbialo ahí.
+- Se guardan con la orden: precio unitario de cada producto, envío/ajuste, total y texto del total. El **Historial** (filtro 💬 WhatsApp) muestra el total cobrado y el celular.
+
+### Para activarlo
+1. **Realtime Database › Rules**: pega el nuevo `database.rules.json` › **Publish** (permite celular y montos en pedidos de WhatsApp).
 2. Sube los archivos a GitHub.

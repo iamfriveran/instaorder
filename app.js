@@ -25,10 +25,11 @@ import { KitchenScreen, HistoryScreen } from "./js/kitchen.js";
 import { SettingsScreen } from "./js/settings.js";
 import { ExternalScreen } from "./js/external.js";
 import { IngredientsScreen } from "./js/availability.js";
+import { WhatsAppScreen } from "./js/whatsapp.js";
 import { showLogin, watchMyProfile } from "./js/auth.js";
 import { initInstall, installButtonHtml, startInstall, onInstallChange, HelpScreen } from "./js/install.js";
 
-export const APP_VERSION = "1.4.4";
+export const APP_VERSION = "1.5.0";
 
 /* ------------------------------------------------------------------ */
 /* Pantalla de inicio                                                  */
@@ -59,7 +60,7 @@ const HomeScreen = {
           </button>` : ""}
           ${can("waiter") ? `<button class="mode-btn mode-ext" data-go="externos">
             <span class="mode-ico">🛵</span>
-            <span class="mode-txt"><b>PEDIDOS EXTERNOS</b><small>PedidosYa · subir captura</small></span>
+            <span class="mode-txt"><b>PEDIDOS EXTERNOS</b><small>PedidosYa · WhatsApp</small></span>
           </button>` : ""}
           ${can("kitchen") ? `<button class="mode-btn mode-kitchen" data-mode="cocina">
             <span class="mode-ico">👨‍🍳</span>
@@ -283,6 +284,7 @@ async function boot() {
   defineRoute("ayuda", HelpScreen);
   defineRoute("externos", ExternalScreen);
   defineRoute("ingredientes", IngredientsScreen);
+  defineRoute("whatsapp", WhatsAppScreen);
 
   // Recordar el último modo usado en este dispositivo.
   if (!location.hash || location.hash === "#/" || location.hash === "#") {
