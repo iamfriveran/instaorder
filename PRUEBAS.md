@@ -163,3 +163,7 @@ Causa: PedidosYa cambió "1Por" por "1x" y "Cliente" por "Customer"; el lector n
 - ✅ Imagen y mensaje muestran Envío y Desechables en líneas separadas; se conserva al recargar.
 - ✅ Se guarda totalAmount 6 y extraCharge 2 (envío + desechables); cocina sin precios. No requiere cambiar reglas de Firebase.
 - ✅ Regresión WhatsApp, promociones y 37/37.
+
+## v1.5.3 — Sólo imagen al cliente (27-nov-2026, modo demo)
+- ✅ En teléfono, "Compartir" envía únicamente la imagen (sin el texto debajo).
+- ✅ En computadora se descarga la imagen y se abre el chat wa.me/5939… sin mensaje escrito.

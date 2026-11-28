@@ -447,10 +447,9 @@ export async function shareWhatsAppSummary(data) {
   if (!data?.items?.length) return toast("No hay datos del pedido para enviar", "error");
   const blob = await renderOrderImage(data);
   const file = new File([blob], `Pedido-Takolandia-${(data.customerName || "cliente").replace(/\W+/g, "-")}.png`, { type: "image/png" });
-  const text = summaryText(data);
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], text });
+      await navigator.share({ files: [file] }); // sólo la imagen, sin texto debajo
       return;
     }
   } catch (e) {
@@ -462,7 +461,7 @@ export async function shareWhatsAppSummary(data) {
   a.href = url; a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   const num = waNumber(data.phone);
-  window.open(`https://wa.me/${num}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+  window.open(`https://wa.me/${num}`, "_blank", "noopener");
   toast("Imagen descargada. Adjúntala en el chat de WhatsApp que se abrió.", "info", 5000);
 }
 

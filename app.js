@@ -29,7 +29,7 @@ import { WhatsAppScreen } from "./js/whatsapp.js";
 import { showLogin, watchMyProfile } from "./js/auth.js";
 import { initInstall, installButtonHtml, startInstall, onInstallChange, HelpScreen } from "./js/install.js";
 
-export const APP_VERSION = "1.5.2";
+export const APP_VERSION = "1.5.3";
 
 /* ------------------------------------------------------------------ */
 /* Pantalla de inicio                                                  */
