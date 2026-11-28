@@ -59,7 +59,7 @@ let sending = false;
 
 function emptyDraft() {
   return { phone: "", customerName: "", preparationMinutes: 20, receivedAt: Date.now(), items: [], generalNotes: "",
-    extraCharge: 0, extraLabel: "Envío", totalText: "", totalTextCustom: false, promoDay: todayPromo() };
+    extraCharge: 0, extraLabel: "Envío", disposablesCharge: 0, disposablesLabel: "Desechables", totalText: "", totalTextCustom: false, promoDay: todayPromo() };
 }
 const getDraft = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)) || null; } catch { return null; } };
 const saveDraft = (d) => localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
@@ -68,11 +68,13 @@ const draft = () => getDraft() || emptyDraft();
 
 export const getLastWa = () => { try { return JSON.parse(localStorage.getItem(LAST_KEY)) || null; } catch { return null; } };
 
-/** Subtotal de productos + cargo extra. */
+/** Subtotal de productos + envío + desechables. extra = envío + desechables (lo que se guarda como extraCharge). */
 export function totals(d) {
   const sub = round2(d.items.reduce((s, i) => s + (Number(i.unitPrice) || 0) * i.quantity, 0));
-  const extra = round2(d.extraCharge);
-  return { sub, extra, total: round2(sub + extra) };
+  const ship = round2(d.extraCharge);
+  const disp = round2(d.disposablesCharge);
+  const extra = round2(ship + disp);
+  return { sub, ship, disp, extra, total: round2(sub + extra) };
 }
 const defaultTotalText = (d) => `TOTAL: ${money(totals(d).total)}`;
 const totalText = (d) => (d.totalTextCustom && d.totalText ? d.totalText : defaultTotalText(d));
@@ -301,6 +303,10 @@ function renderSummary() {
         <input class="field" data-w="extraLabel" value="${esc(d.extraLabel || "Envío")}" placeholder="Envío / ajuste" autocomplete="off">
         <input class="field wa-extra-amt" data-w="extraCharge" inputmode="decimal" value="${d.extraCharge ? d.extraCharge : ""}" placeholder="$0.00" autocomplete="off">
       </div>
+      <div class="wa-row wa-extra">
+        <input class="field" data-w="disposablesLabel" value="${esc(d.disposablesLabel || "Desechables")}" placeholder="Desechables" autocomplete="off">
+        <input class="field wa-extra-amt" data-w="disposablesCharge" inputmode="decimal" value="${d.disposablesCharge ? d.disposablesCharge : ""}" placeholder="$0.00" autocomplete="off">
+      </div>
       <div class="wa-row wa-total"><span>TOTAL</span><b id="wa-total">${money(t.total)}</b></div>
       <label class="wa-text-lbl">Texto del total que verá el cliente (editable)
         <input class="field" data-w="totalText" value="${esc(totalText(d))}" autocomplete="off">
@@ -329,11 +335,12 @@ function loadImg(src) {
 
 /** Dibuja la imagen del pedido (PNG) con el logo, productos, precios y total. */
 export async function renderOrderImage(data) {
+  if (data.shipCharge === undefined) data = { ...data, shipCharge: data.extraCharge || 0 }; // pedidos de v1.5.0
   try { await document.fonts?.ready; } catch { /* */ }
   const W = 1080, pad = 70;
   const items = data.items || [];
   const lineH = 86;
-  const H = 520 + items.length * lineH + (data.extraCharge ? 70 : 0) + (data.promoLabel ? 56 : 0) + 420;
+  const H = 520 + items.length * lineH + (data.shipCharge ? 70 : 0) + (data.disposablesCharge ? 70 : 0) + (data.promoLabel ? 56 : 0) + 420;
   const c = document.createElement("canvas");
   c.width = W; c.height = H;
   const g = c.getContext("2d");
@@ -375,9 +382,10 @@ export async function renderOrderImage(data) {
     g.fillStyle = "#6B6280"; g.font = font(600, 24); g.fillText(`${money(it.unitPrice)} c/u${it.promo ? " · promo" : ""}`, pad + 96, y + 30);
     y += lineH - 52;
   }
-  if (data.extraCharge) {
-    y += 56; g.fillStyle = "#1D1530"; g.font = font(700, 32); g.fillText(data.extraLabel || "Envío", pad + 96, y);
-    g.textAlign = "right"; g.fillText(money(data.extraCharge), W - pad, y); g.textAlign = "left"; y += 14;
+  const extras = [[data.extraLabel || "Envío", data.shipCharge], [data.disposablesLabel || "Desechables", data.disposablesCharge]].filter((x) => x[1]);
+  for (const [lbl, amt] of extras) {
+    y += 56; g.fillStyle = "#1D1530"; g.font = font(700, 32); g.fillText(lbl, pad + 96, y);
+    g.textAlign = "right"; g.fillText(money(amt), W - pad, y); g.textAlign = "left"; y += 14;
   }
   // Total
   y += 50;
@@ -408,10 +416,12 @@ export function waNumber(phone) {
 }
 
 function summaryText(data) {
+  if (data.shipCharge === undefined) data = { ...data, shipCharge: data.extraCharge || 0 };
   return [`¡Hola ${data.customerName || ""}! 🌮 Este es el resumen de tu pedido en Takolandia:`, "",
     ...(data.promoLabel ? [`🎉 ${data.promoLabel}`, ""] : []),
     ...data.items.map((i) => `${i.quantity}× ${i.productName} — ${money(i.unitPrice * i.quantity)}`),
-    ...(data.extraCharge ? [`${data.extraLabel || "Envío"} — ${money(data.extraCharge)}`] : []),
+    ...(data.shipCharge ? [`${data.extraLabel || "Envío"} — ${money(data.shipCharge)}`] : []),
+    ...(data.disposablesCharge ? [`${data.disposablesLabel || "Desechables"} — ${money(data.disposablesCharge)}`] : []),
     "", data.totalText, ...(data.minutes ? [`⏱ Tiempo estimado: ${data.minutes} min`] : []), "", "¡Gracias por tu pedido!"].join("\n");
 }
 
@@ -421,7 +431,8 @@ function shareData(d) {
   const tgt = targetOf(d);
   return {
     customerName: d.customerName, phone: d.phone, items: d.items.map((i) => ({ ...i })),
-    extraCharge: t.extra, extraLabel: d.extraLabel, total: t.total, totalText: totalText(d),
+    extraCharge: t.extra, shipCharge: t.ship, extraLabel: d.extraLabel,
+    disposablesCharge: t.disp, disposablesLabel: d.disposablesLabel, total: t.total, totalText: totalText(d),
     minutes: d.preparationMinutes, readyAt: tgt ? fmtTime(tgt) : "", when: fmtTime(d.receivedAt),
     promoLabel: d.items.some((i) => i.promo) && PROMOS[d.promoDay] ? PROMOS[d.promoDay].label : "",
   };
@@ -559,7 +570,7 @@ function onInput(e) {
   if (k === "search") { ui.search = t.value; renderCats(); renderProducts(); return; }
   const d = draft();
   if (k === "preparationMinutes") { const n = parseInt(t.value, 10); d.preparationMinutes = n >= 1 && n <= 180 ? n : null; saveDraft(d); renderTarget(); return; }
-  if (k === "extraCharge") { const n = parseFloat(String(t.value).replace(",", ".")); d.extraCharge = isFinite(n) ? round2(n) : 0; saveDraft(d); updateTotalsInPlace(); return; }
+  if (k === "extraCharge" || k === "disposablesCharge") { const n = parseFloat(String(t.value).replace(",", ".")); d[k] = isFinite(n) ? round2(n) : 0; saveDraft(d); updateTotalsInPlace(); return; }
   if (k === "totalText") { d.totalText = t.value; d.totalTextCustom = t.value.trim() !== "" && t.value !== defaultTotalText(d); saveDraft(d); return; }
   d[k] = t.value;
   saveDraft(d);

@@ -433,7 +433,7 @@ function renderHist() {
         <div class="h-grid">
           <div><small>Tipo</small>${x ? `Externo · ${esc(PLATFORM_LABELS[o.sourcePlatform] || o.sourcePlatform)}` : "Interno · Mesa"}</div>
           ${x ? `<div><small>Orden externa</small>#${esc(o.platformOrderNumber)}</div><div><small>Cliente</small>${esc(o.customerName || "—")}${o.customerPhone ? ` · ${esc(o.customerPhone)}` : ""}</div>
-                 ${wa && typeof o.totalAmount === "number" ? `<div><small>Total cobrado</small><b>$${o.totalAmount.toFixed(2)}</b>${o.extraCharge ? ` (incluye $${Number(o.extraCharge).toFixed(2)} de envío/ajuste)` : ""}${o.totalText ? `<br><small>${esc(o.totalText)}</small>` : ""}</div>` : ""}`
+                 ${wa && typeof o.totalAmount === "number" ? `<div><small>Total cobrado</small><b>$${o.totalAmount.toFixed(2)}</b>${o.extraCharge ? ` (incluye $${Number(o.extraCharge).toFixed(2)} de envío/desechables)` : ""}${o.totalText ? `<br><small>${esc(o.totalText)}</small>` : ""}</div>` : ""}`
             : `<div><small>Mesa</small>${tableLabel(o.tableNumber)}</div>`}
           <div><small>ID INSTAOrder</small>${esc(o.orderId)}${o.orderNumber ? ` (#${o.orderNumber})` : ""}</div>
           <div><small>${x ? "Ingresada por" : "Mesero"}</small>${esc(o.enteredBy?.name || o.waiterName)}</div>

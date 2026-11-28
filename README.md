@@ -626,4 +626,7 @@ En "Ingreso manual" de WhatsApp elige **Sin promo / Lunes / Martes / Miércoles*
 - Lunes de Quesadilla $2: Quesadilla Queso, Res, Pollo, Pastor, Campechano.
 - Martes de Burritos $2: Burrito Clásico Res, Pollo, Pastor.
 - Miércoles de Tacos $1: Taco Carne de Res, Pollo, Al Pastor.
+### 19.2 Envío y desechables
+En el resumen hay dos cargos opcionales: **Envío** y **Desechables** (nombre y monto editables). Ambos se suman al total y aparecen en la imagen del cliente; en el historial se guardan juntos como cargo extra.
+
 Para cambiar precios o productos de la promo, editar `PROMOS` al inicio de `js/whatsapp.js`.

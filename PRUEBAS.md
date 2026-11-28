@@ -156,3 +156,10 @@ Causa: PedidosYa cambió "1Por" por "1x" y "Cliente" por "Customer"; el lector n
 - ✅ Pedido de prueba (2 Quesadilla Res, 1 Quesadilla Birria, 1 Burrito Clásico Pollo, 3 Taco Pollo): Sin promo $23.50 · Lunes $20.00 · Martes $21.75 · Miércoles $19.00.
 - ✅ Cambiar de día recalcula todo el pedido; resumen muestra "promo · antes $x"; imagen y mensaje muestran el nombre de la promo; total guardado correcto.
 - ✅ Regresión WhatsApp v1.5.0 y 37/37.
+
+## v1.5.2 — Costo de desechables en Pedidos por WhatsApp (27-nov-2026, modo demo)
+- ✅ Nuevo casillero "Desechables" (nombre y monto editables) junto a "Envío"; acepta 0,50 o 0.50.
+- ✅ Subtotal $4.00 + envío $1.50 + desechables $0.50 = $6.00; con sólo desechables $4.50; el texto del total se actualiza solo.
+- ✅ Imagen y mensaje muestran Envío y Desechables en líneas separadas; se conserva al recargar.
+- ✅ Se guarda totalAmount 6 y extraCharge 2 (envío + desechables); cocina sin precios. No requiere cambiar reglas de Firebase.
+- ✅ Regresión WhatsApp, promociones y 37/37.
